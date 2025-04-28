@@ -1122,7 +1122,7 @@ typedef enum
 #define STAT_HUD_HIRE2_CMD		 29
 
 // Ridah, duplicated these for use in teamplay, since they aren't used at all in multiplay
-#define STAT_BAGCASH		      21
+#define STAT_BOSS_TIMER		      21
 #define STAT_DEPOSITED        22
 //#define STAT_HUD_ENEMY_TALK_TIME 23
 //#define STAT_HUD_SELF_TALK_TIME  24

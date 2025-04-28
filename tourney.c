@@ -285,7 +285,9 @@ void CheckStartMatch ()
 // countdown before public game starts
 void CheckStartPub ()
 {
+#ifndef HYPODEBUG
 	if (level.framenum >= level.pregameframes)
+#endif
 	{
 		Start_Pub ();
 		return;
@@ -705,84 +707,4 @@ void SetupMapVote()
 		}
 		num_vote_set = 8;
 	}
-}
-
-edict_t *GetTeamBoss(int team)
-{
-	if (level.team_boss[team - 1])
-	{
-		edict_t *boss = g_edicts + level.team_boss[team - 1];
-		if (boss->inuse && boss->client->pers.team == team && boss->client->resp.is_boss)
-			return boss;
-	}
-	return NULL;
-}
-
-edict_t *NewTeamBoss(int team)
-{
-	int			i, n;
-	edict_t		*doot;
-
-	n = level.team_boss[team - 1];
-	if (!n)
-	{
-		// randomize first boss
-		for (i = 0; i < (int)maxclients->value; i++)
-		{
-			doot = g_edicts + 1 + i;
-			if (doot->inuse && doot->client->pers.team == team)
-				n = i;
-		}
-		n = rand() % (n + 1);
-	}
-
-	for (i = 0; i < (int)maxclients->value; i++)
-	{
-		if (++n > (int)maxclients->value)
-			n = 1;
-		doot = g_edicts + n;
-		if (doot->inuse && doot->client->pers.team == team)
-			return doot;
-	}
-
-	return NULL;
-}
-
-void KillTeam(int team)
-{
-	int i;
-	edict_t *doot;
-	edict_t *boss = GetTeamBoss(team);
-	gi.bprintf(PRINT_HIGH, boss ? "The %s boss has fallen!\n" : "The %s boss fled!\n", team_names[team]);
-	for_each_player (doot, i)
-	{
-		if (doot->client->pers.team == team)
-		{
-			if (!doot->deadflag)
-			{
-				doot->health = 0; // no obituary
-				player_die(doot, doot, doot, 0, vec3_origin, 0, 0);
-			}
-			if (boss && doot != boss && doot->client->chase_target != boss)
-			{
-				if (!(doot->svflags & SVF_NOCLIENT))
-				{
-					doot->flags |= FL_SPAWNED_BLOODPOOL; // prevent blood
-					CopyToBodyQue(doot);
-				}
-				doot->movetype = MOVETYPE_NOCLIP;
-				doot->solid = SOLID_NOT;
-				doot->svflags |= SVF_NOCLIENT;
-				VectorClear(doot->velocity);
-				doot->client->chase_target = boss;
-			}
-			doot->client->resp.is_boss = false;
-			doot->client->respawn_time = 0;
-		}
-		Com_sprintf(doot->client->resp.message, sizeof(doot->client->resp.message) - 1, boss ? "The %s boss has fallen!" : "The %s boss fled!", team_names[team]);
-		doot->client->resp.message_frame = level.framenum + 30;
-		if (!doot->client->showscores)
-			doot->client->resp.scoreboard_frame = 0;
-	}
-	level.next_spawn[team - 1] = level.framenum + 30; // respawn team in 3s
 }

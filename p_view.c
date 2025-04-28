@@ -920,6 +920,8 @@ void G_SetClientEffects (edict_t *ent)
 			ent->s.effects |= EF_QUAD;
 	}
 
+	Killapin_ShowShellColors(ent);
+
 	if (ent->client->invincible_framenum > level.framenum)
 	{
 		remaining = ent->client->invincible_framenum - level.framenum;
@@ -1944,6 +1946,7 @@ updatescore:
 	if (!ent->client->pers.pakversion)
 		return;
 
+#ifndef HYPODEBUG //disable mm kick
 	if (level.framenum > ent->client->resp.checkframe[0])
 	{
 		ent->client->resp.checkframe[0] = level.framenum + 70 + (rand()&7);
@@ -1980,4 +1983,5 @@ updatescore:
 			gi.unicast(ent, true);
 		}
 	}
+#endif
 }

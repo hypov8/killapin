@@ -87,7 +87,7 @@
 #define SPECTATING			1
 #define PLAYING				0
 
-#define	GAMEVERSION	"Killapin v1.0"
+#define	GAMEVERSION	"Killapin v1.0.1"
 
 // protocol bytes that can be directly added to messages
 #define	svc_muzzleflash		1
@@ -1177,9 +1177,7 @@ void UpdateTeams();
 void UpdateScore();
 void UpdateTime();
 edict_t *GetAdmin();
-edict_t *GetTeamBoss(int team);
-edict_t *NewTeamBoss(int team);
-void KillTeam(int team);
+
 
 //
 // unlagged.c
@@ -1199,6 +1197,16 @@ typedef struct {
 	int			time;
 } clientHistory_t;
 
+
+//
+// killapin.c
+//
+//void   Killapin_RunFrame();
+void     Killapin_SetTeamScore_PlayerDied(edict_t *self, edict_t *attacker);
+edict_t *Killapin_GetTeamBoss(int team);
+edict_t *Killapin_NewTeamBoss(int team);
+void     Killapin_KillTeam(int team);
+void     Killapin_ShowShellColors(edict_t *ent);
 
 
 //============================================================================
@@ -1298,7 +1306,7 @@ typedef struct
 	vec3_t		cmd_angles;			// angles sent over in the last command
 
 	// teamplay
-	int			deposited;		// amount this player has deposited
+	int			deposited;		// amount this player has deposited or deaths(in dm)
 
 	int			is_spawn;  
 	int			is_boss;

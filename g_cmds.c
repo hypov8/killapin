@@ -59,6 +59,7 @@ void Cmd_Spec_f (edict_t *self)
 	if (self->client->resp.is_boss)
 	{
 		self->client->resp.is_boss = false;
+		level.team_boss[self->client->pers.team - 1] = 0; //hypov8 add. boss going to spec
 		killteam = self->client->pers.team;
 	}
 	else
@@ -82,10 +83,10 @@ void Cmd_Spec_f (edict_t *self)
 	if (self->client->chase_target)
 		ChaseStop(self);
 	if (killteam)
-		KillTeam(killteam);
+		Killapin_KillTeam(killteam);
 }
 
-// Papa - add plater to a team
+// Papa - add player to a team
 void Cmd_Join_f (edict_t *self, char *teamcmd)
 {
 	int	i;
@@ -3052,7 +3053,7 @@ void Cmd_Need_f (edict_t *ent)
 
 	if (!strcmp(s, "ammo"))
 	{
-		edict_t *boss = GetTeamBoss(ent->client->pers.team);
+		edict_t *boss = Killapin_GetTeamBoss(ent->client->pers.team);
 		if (boss)
 		{
 			gi.cprintf(ent, PRINT_CHAT, "> ammo requested\n");
@@ -3064,7 +3065,7 @@ void Cmd_Need_f (edict_t *ent)
 	{
 		if (ent->health < ent->max_health)
 		{
-			edict_t *boss = GetTeamBoss(ent->client->pers.team);
+			edict_t *boss = Killapin_GetTeamBoss(ent->client->pers.team);
 			if (boss)
 			{
 				gi.cprintf(ent, PRINT_CHAT, "> health requested\n");
@@ -3151,6 +3152,8 @@ void ClientCommand (edict_t *ent)
 		}
 		else
 		{
+#ifndef HYPODEBUG //remove mm kick commands
+
 			int c = atoi(cmd + 3);
 			if (c != ent->client->resp.checked)
 				return;
@@ -3226,6 +3229,7 @@ void ClientCommand (edict_t *ent)
 						ent->client->pers.polyblender = (v == 2);
 				}
 			}
+#endif
 			ent->client->resp.checked += 100;
 		}
 		return;

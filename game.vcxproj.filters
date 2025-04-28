@@ -126,6 +126,9 @@
     <ClCompile Include="voice_punk.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="killapin.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="file.h">

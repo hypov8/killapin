@@ -1436,7 +1436,7 @@ void G_SetStats (edict_t *ent)
 	// frags
 	//
 	ent->client->ps.stats[STAT_FRAGS] = ent->client->resp.score;
-	ent->client->ps.stats[STAT_DEPOSITED] = ent->client->resp.deposited;
+	ent->client->ps.stats[STAT_DEPOSITED] = ent->client->resp.deposited; //or frags
 
 	// show team scores
 	for (i=0; i<3; i++)
@@ -1444,10 +1444,10 @@ void G_SetStats (edict_t *ent)
 		ent->client->ps.stats[STAT_TEAM1_SCORE + i] = team_cash[1+i];	// set score
 	}
 
-	if (!level.intermissiontime && level.framenum < level.invincible_boss && level.framenum > level.invincible_boss - 500 && ((level.invincible_boss - level.framenum) % 10) >= 5)
-		ent->client->ps.stats[STAT_BAGCASH] = (level.invincible_boss - level.framenum + 9) / 10;
+	if (!level.intermissiontime && level.framenum < level.invincible_boss && level.framenum > level.invincible_boss - 500)
+		ent->client->ps.stats[STAT_BOSS_TIMER] = (level.invincible_boss - level.framenum + 9) / 10;
 	else
-		ent->client->ps.stats[STAT_BAGCASH] = 0;
+		ent->client->ps.stats[STAT_BOSS_TIMER] = 0;
 
 	// team indicators (ifeq/bit statusbar options aren't supported by Kingpin so need to use 2 stat slots)
 	ent->client->ps.stats[24] = (ent->client->pers.team == 1);

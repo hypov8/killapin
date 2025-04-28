@@ -780,10 +780,10 @@ void G_RunFrame (void)
 		{
 			if (level.framenum >= level.next_spawn[team - 1])
 			{
-				boss = GetTeamBoss(team);
+				boss = Killapin_GetTeamBoss(team);
 				if (!boss)
 				{
-					boss = NewTeamBoss(team);
+					boss = Killapin_NewTeamBoss(team);
 					if (boss)
 						respawn (boss);
 					continue;

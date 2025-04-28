@@ -311,7 +311,7 @@ void ClientObituary (edict_t *self, edict_t *inflictor, edict_t *attacker)
 					gi.cprintf (self, PRINT_MEDIUM, "%s had %i health\n", attacker->client->pers.netname, attacker->health);
 				if (mod != MOD_TELEFRAG)
 				{
-					if (ff)
+					if (ff)//hypov8 friendly fire
 					{
 						attacker->client->resp.score--;
 
@@ -327,7 +327,7 @@ void ClientObituary (edict_t *self, edict_t *inflictor, edict_t *attacker)
 
 						if ((int)teamplay->value == TM_GANGBANG)
 						{
-							team_cash[attacker->client->pers.team] += (attacker->client->resp.is_boss && self->client->resp.is_boss) ? 25 : 1;
+							Killapin_SetTeamScore_PlayerDied(self, attacker);
 							UpdateScore();
 						}
 					}
@@ -517,7 +517,7 @@ void player_die (edict_t *self, edict_t *inflictor, edict_t *attacker, int damag
 	gi.linkentity (self);
 
 	if (self->client->resp.is_boss)
-		KillTeam(self->client->pers.team);
+		Killapin_KillTeam(self->client->pers.team);
 }
 
 //=======================================================================
@@ -788,16 +788,24 @@ edict_t *SelectDeathmatchSpawnPoint (edict_t *ent)
 
 	if (!ent->client->resp.is_boss)
 	{
-		edict_t *boss = GetTeamBoss(ent->client->pers.team);
+		edict_t *boss = Killapin_GetTeamBoss(ent->client->pers.team);
+
+		// spawn around boss
 		if (boss)
 			return boss;
-		// nobody else is boss
+
+		// nobody is boss
 		level.team_boss[ent->client->pers.team - 1] = ent - g_edicts;
-		ent->client->resp.is_boss = true;
+		ent->client->resp.is_boss = true; //hypov8. new boss assigned
 		gi.bprintf(PRINT_HIGH, "%s is the new boss of %s\n", ent->client->pers.netname, team_names[ent->client->pers.team]);
 		Com_sprintf(ent->client->resp.message, sizeof(ent->client->resp.message) - 1, "You are the %s boss!", team_names[ent->client->pers.team]);
 		ent->client->resp.message_frame = level.framenum + 30;
 	}
+#ifdef HYPODEBUG
+	else
+		gi.dprintf("boss respawn"); //swaped teams...
+#endif
+
 	if ((int)(dmflags->value) & DF_SPAWN_FARTHEST)
 		return SelectFarthestDeathmatchSpawnPoint (ent);
 	else
@@ -1096,7 +1104,7 @@ void respawn (edict_t *self)
 			{
 				if (body->acc)
 				{ // set body to current boss's skin
-					edict_t *boss = GetTeamBoss(self->client->pers.team);
+					edict_t *boss = Killapin_GetTeamBoss(self->client->pers.team);
 					if (boss)
 						body->s.skinnum = boss->s.skinnum;
 				}
@@ -2053,7 +2061,7 @@ skiplist:
 		if (ent->client->resp.is_boss)
 		{
 			ent->client->resp.is_boss = false;
-			KillTeam(ent->client->pers.team);
+			Killapin_KillTeam(ent->client->pers.team);
 		}
 
 		playerskin(playernum, "");
@@ -2683,6 +2691,11 @@ void ClientBeginServerFrame (edict_t *ent)
 	if (level.intermissiontime)
 		return;
 
+#ifdef HYPODEBUG
+		client->pers.lastpacket = curtime;
+		client->pers.idle = curtime;
+#endif
+
 	if (client->pers.spectator != SPECTATING && curtime - client->pers.lastpacket >= 5000)
 	{
 		// 5 seconds since last contact from the client
@@ -2734,7 +2747,7 @@ void ClientBeginServerFrame (edict_t *ent)
 	{
 		if (!client->chase_target && (!ent->deadflag || ent->client->dead_frames >= 25))
 		{
-			edict_t *boss = GetTeamBoss(client->pers.team);
+			edict_t *boss = Killapin_GetTeamBoss(client->pers.team);
 			if (boss)
 			{
 				if (!(ent->svflags & SVF_NOCLIENT))
@@ -2782,7 +2795,7 @@ void ClientBeginServerFrame (edict_t *ent)
 		client->health_count = 0;
 	else if (!client->resp.is_boss && client->health_count > 10)
 	{
-		edict_t *boss = GetTeamBoss(client->pers.team);
+		edict_t *boss = Killapin_GetTeamBoss(client->pers.team);
 		if (!boss || VectorDistance(ent->s.origin, boss->s.origin) > 200)
 			client->health_count = 10;
 	}

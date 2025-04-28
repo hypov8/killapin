@@ -1,6 +1,12 @@
 # Visual Studio files
 .vs/
 *.user
+*.suo
+*.opensdf
+*.sdf
 
 # Build results
 Release/
+DebugDed/
+DebugLan/
+
