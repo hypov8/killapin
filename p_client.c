@@ -2791,45 +2791,8 @@ void ClientBeginServerFrame (edict_t *ent)
 	if (client->Harpoon.Weapon)
 		Harpoon_Draw_Cable(client->Harpoon.Weapon);
 
-	if (/*ent->health == ent->max_health ||*/ client->weaponstate == WEAPON_FIRING)
-		client->health_count = 0;
-	else if (!client->resp.is_boss && client->health_count > 10)
-	{
-		edict_t *boss = Killapin_GetTeamBoss(client->pers.team);
-		if (!boss || VectorDistance(ent->s.origin, boss->s.origin) > 200)
-			client->health_count = 10;
-	}
-	if (++client->health_count == 20)
-	{
-		gitem_t *item;
-		int sound = 0;
-		if (!client->resp.is_boss)
-		{
-			if (Add_Ammo(ent, item = FindItem("Shells"), 4) && client->ammo_index == ITEM_INDEX(item))
-				sound = gi.soundindex("world/pickups/ammo.wav");
-			if (Add_Ammo(ent, item = FindItem("Bullets"), 25) && client->ammo_index == ITEM_INDEX(item))
-				sound = gi.soundindex("world/pickups/ammo.wav");
-			if (Add_Ammo(ent, item = FindItem("308cal"), 15) && client->ammo_index == ITEM_INDEX(item))
-				sound = gi.soundindex("world/pickups/ammo.wav");
-		}
-		if (ent->health < ent->max_health)
-		{
-			ent->health += 15;
-			if (ent->health > ent->max_health)
-				ent->health = ent->max_health;
-			sound = gi.soundindex("world/pickups/health.wav");
-		}
-		if (sound)
-		{
-			gi.WriteByte(11); // svc_sound
-			gi.WriteByte(8); // SND_ENT
-			gi.WriteByte(sound);
-			gi.WriteShort(((ent - g_edicts) << 3) | CHAN_AUTO);
-			gi.unicast(ent, true);
-//			client->bonus_alpha = 0.25;
-		}
-		client->health_count = 10;
-	}
+	Killapin_GiveItems(ent, client);
+
 }
 
 static int CheckClientRejoin(edict_t *ent)

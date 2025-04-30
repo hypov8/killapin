@@ -1207,6 +1207,7 @@ edict_t *Killapin_GetTeamBoss(int team);
 edict_t *Killapin_NewTeamBoss(int team);
 void     Killapin_KillTeam(int team);
 void     Killapin_ShowShellColors(edict_t *ent);
+void     Killapin_GiveItems(edict_t *self, gclient_t *client);
 
 
 //============================================================================

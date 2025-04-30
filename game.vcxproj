@@ -71,6 +71,10 @@
     <TargetName>gamex86</TargetName>
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebubDed|Win32'">
+    <TargetExt>
+    </TargetExt>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <Optimization>MinSpace</Optimization>
@@ -154,7 +158,11 @@
       <ImportLibrary>$(IntDir)$(TargetName).lib</ImportLibrary>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy /y /d "$(TargetPath)" "D:\Kingpin\killapin\"</Command>
+      <Command>copy /y "$(OutDir)$(TargetName)$(TargetExt)" "D:\Kingpin\killapin\$(TargetName).dll.new"
+copy /y "$(OutDir)$(TargetName).pdb" "D:\Kingpin\killapin\$(TargetName).pdb"
+
+
+</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>

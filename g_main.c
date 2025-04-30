@@ -576,7 +576,7 @@ void G_RunFrame (void)
 					}
 				}
 
-			    if (!ent->deadflag)
+				if (!ent->deadflag)
 				{
 					edict_t *trav=NULL;
 					float	damage=1;
