@@ -1741,7 +1741,7 @@ void ClientEndServerFrame (edict_t *ent)
 
 	AngleVectors (ent->client->v_angle, forward, right, up);
 
-	if (ent->client->resp.is_boss && level.framenum < level.invincible_boss && level.framenum >= level.invincible_boss - 500)
+	if (ent->client->resp.is_boss && level.framenum < level.invincible_boss && level.framenum >= level.invincible_boss - BOSS_TIME_TOTAL)
 		ent->client->invincible_framenum = level.invincible_boss;
 
 	// burn from lava, etc

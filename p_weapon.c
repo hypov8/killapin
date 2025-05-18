@@ -1531,7 +1531,7 @@ void Crowbar_Hit (edict_t *ent, vec3_t vorigin, int damage)
 	{
 		gi.WriteByte (svc_muzzleflash);
 		gi.WriteShort (ent-g_edicts);
-		gi.WriteByte (MZ_CROWBAR_SWING);
+		gi.WriteByte (MZ_CROWBAR_SWING); //hypov8 no effect? MZ_IONRIPPER
 		gi.multicast (ent->s.origin, MULTICAST_PVS);
 	}
 }

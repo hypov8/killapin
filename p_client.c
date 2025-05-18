@@ -587,7 +587,12 @@ void InitClientPersistant (gclient_t *client)
 		client->pers.weapon = item;
 	}
 
-	client->pers.max_health = client->pers.health = 100;
+//kilapin
+	if (client->resp.is_boss)
+		client->pers.max_health = client->pers.health = 150;
+	else
+//end
+		client->pers.max_health = client->pers.health = 100;
 
 	client->pers.max_bullets	= 100;
 	client->pers.max_shells		= 32;

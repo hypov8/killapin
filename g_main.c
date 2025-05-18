@@ -452,6 +452,7 @@ extern int bbox_cnt;
 extern edict_t	*mdx_bbox[];
 
 void AI_ProcessCombat (void);
+void Harpoon_Touch(edict_t *self, edict_t *other, cplane_t *plane, csurface_t *surf);
 
 void G_RunFrame (void)
 {
@@ -494,8 +495,12 @@ void G_RunFrame (void)
 			continue;
 
 		level.current_entity = ent;
-
-		VectorCopy (ent->s.origin, ent->s.old_origin);
+		if (ent->touch != Harpoon_Touch)
+			VectorCopy (ent->s.origin, ent->s.old_origin);
+		else
+		{
+			//do nothing. old_origin set prior(beam start pos)
+		}
 
 
 		if ((ent->svflags & SVF_MONSTER) || ent->client)
@@ -743,77 +748,8 @@ void G_RunFrame (void)
 		}
 	}
 //END CDEATH
-
-	if (level.modeset == PUBLIC || level.modeset == MATCH)
-	{
-		int			team;
-		edict_t		*boss;
-
-		// enable invincible boss mode
-		if (level.framenum - level.invincible_boss >= 1200 && !(rand() & 127))
-		{
-			level.invincible_boss = level.framenum + 542;
-			gi.WriteByte(svc_stufftext);
-			gi.WriteString("play killapin/bstart\n");
-			gi.multicast(vec3_origin, MULTICAST_ALL);
-		}
-		if (level.framenum == level.invincible_boss - 1)
-		{
-			gi.WriteByte(svc_stufftext);
-			gi.WriteString("play killapin/bend\n");
-			gi.multicast(vec3_origin, MULTICAST_ALL);
-		}
-		if ((level.framenum == level.invincible_boss - 500))
-		{
-			edict_t *player;
-			for_each_player (player, i)
-			{
-				strcpy(player->client->resp.message, "BOSS TIME HAS STARTED!");
-				player->client->resp.message_frame = level.framenum + 30;
-				if (!player->client->showscores)
-					player->client->resp.scoreboard_frame = 0;
-			}
-		}
-
-		// respawn a player from each team
-		for (team = 1; team <= (int)teams->value; team++)
-		{
-			if (level.framenum >= level.next_spawn[team - 1])
-			{
-				boss = Killapin_GetTeamBoss(team);
-				if (!boss)
-				{
-					boss = Killapin_NewTeamBoss(team);
-					if (boss)
-						respawn (boss);
-					continue;
-				}
-				for_each_player (ent, i)
-				{
-					if (ent->client->pers.team == team && (ent->deadflag || !ent->solid) && level.time >= ent->client->respawn_time)
-					{
-						respawn (ent);
-						break;
-					}
-				}
-			}
-		}
-	}
-	else if (level.intermissiontime && level.time < level.intermissiontime + 20)
-	{
-		if (level.framenum == level.startframe + 10)
-		{
-			gi.WriteByte(svc_stufftext);
-			gi.WriteString("play killapin/gend\n");
-			gi.multicast(vec3_origin, MULTICAST_ALL);
-		}
-		else if (!((level.framenum - level.startframe - 25) % 150))
-		{
-			gi.WriteByte(svc_stufftext);
-			gi.WriteString("play world/cypress4\n");
-			gi.multicast(vec3_origin, MULTICAST_ALL);
-		}
-	}
+	Killapin_RunFrame();
+	
 
 	if (level.modeset == PREGAME)
 		CheckStartPub ();

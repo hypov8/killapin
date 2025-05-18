@@ -1201,14 +1201,16 @@ typedef struct {
 //
 // killapin.c
 //
-//void   Killapin_RunFrame();
+#define  BOSS_TIME_TOTAL 500
+#define  BOSS_TIME_BEGIN 42 //4 seconds countdown
 void     Killapin_SetTeamScore_PlayerDied(edict_t *self, edict_t *attacker);
 edict_t *Killapin_GetTeamBoss(int team);
 edict_t *Killapin_NewTeamBoss(int team);
 void     Killapin_KillTeam(int team);
 void     Killapin_ShowShellColors(edict_t *ent);
 void     Killapin_GiveItems(edict_t *self, gclient_t *client);
-
+void     Killapin_RunFrame(void);
+void     Killapin_Build_RadarMessage(edict_t *ent, char *string, int *stringlength, int maxLen);
 
 //============================================================================
 
@@ -1310,7 +1312,8 @@ typedef struct
 	int			deposited;		// amount this player has deposited or deaths(in dm)
 
 	int			is_spawn;  
-	int			is_boss;
+	int			is_boss; //killapin
+	int			boss_time; //killapin. store time as boss in seconds
 
 	int			accshot, acchit, fav[9];
 	int			time;

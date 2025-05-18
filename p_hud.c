@@ -758,6 +758,7 @@ void GrabDaLootScoreboardMessage (edict_t *ent)
 			sprintf(string, "xm %i yv -29 dmstr 999 \"%s\" ", -5 * strlen(ent->client->resp.message), ent->client->resp.message);
 		strcat(string, Power_Game.Overlay);
 		stringlength = strlen(string);
+		Killapin_Build_RadarMessage(ent, string, &stringlength, 1024);
 		goto skipscores;
 	}
 
@@ -1444,7 +1445,7 @@ void G_SetStats (edict_t *ent)
 		ent->client->ps.stats[STAT_TEAM1_SCORE + i] = team_cash[1+i];	// set score
 	}
 
-	if (!level.intermissiontime && level.framenum < level.invincible_boss && level.framenum > level.invincible_boss - 500)
+	if (!level.intermissiontime && level.framenum < level.invincible_boss && level.framenum > level.invincible_boss - BOSS_TIME_TOTAL)
 		ent->client->ps.stats[STAT_BOSS_TIMER] = (level.invincible_boss - level.framenum + 9) / 10;
 	else
 		ent->client->ps.stats[STAT_BOSS_TIMER] = 0;

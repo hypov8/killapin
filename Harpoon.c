@@ -352,12 +352,34 @@ void Harpoon_Draw_Cable(edict_t *self)
 	distance = VectorLength(dir);
 	// don't draw cable if close
 	if (distance < 64)
+	{
+		self->s.frame = 0;
+		self->s.skinnum = 0;
+		self->s.renderfx &= ~RF_BEAM;
 		return;
-
+	}
+#if 1
+	self->s.frame = 10;
+	self->s.renderfx |= (RF_BEAM|RF_FRAMELERP);
+	//self->s.renderfx2 |= RDF_NOLERP;
+	switch (self->owner->client->pers.team)
+	{
+		default: self->s.skinnum = 0xf2f2f0f0; break;
+		case 1:  self->s.skinnum = 0xE787E787; break;//red
+		case 2:  self->s.skinnum = 0xCDC8CDC8; break;//yellow
+		case 3:  self->s.skinnum = 0xE2E3E3E2; break;//blue
+	}
+#endif
 // adjust start for beam origin being in middle of a segment
 //	VectorMA (start, 8, f, start);
-
 	VectorCopy (self->s.origin, end);
+
+
+	//VectorCopy(start, end);
+	//end[2] += self->owner->viewheight - 13;
+	//lazerbeam source
+	VectorCopy(start, self->s.old_origin); //
+
 // adjust end z for end spot since the monster is currently dead
 //	end[2] = self->absmin[2] + self->size[2] / 2;
 
@@ -365,14 +387,17 @@ void Harpoon_Draw_Cable(edict_t *self)
 	{
 		// MH: send multiple times to solidify the beam since called only once per frame now (in ClientBeginServerFrame instead of ClientThink)
 		int i;
-		for (i = 0; i < 8; i++)
+
+		//G_SetMovedir (self->owner->s.angles, self->movedir);
+
+		/*for (i = 0; i < 4; i++)
 		{
 			gi.WriteByte(svc_temp_entity);
-			gi.WriteByte(TE_BFG_LASER);
+			gi.WriteByte(TE_BFG_LASER);//TE_GRAPPLE_CABLE
 			gi.WritePosition(start);
 			gi.WritePosition(end);
 			gi.multicast(self->s.origin, MULTICAST_PVS);
-		}
+		}*/
 	}
 }
 
@@ -481,7 +506,7 @@ void Harpoon_Pull(edict_t *self)
 		SV_AddGravity(self->owner);
 	}
 }
-
+extern void think_lighthouse_beam(edict_t *self);
 void Harpoon_Fire(edict_t *self, vec3_t start, vec3_t dir, int damage, int speed, int effect)
 {
 	edict_t	*harpoon;
@@ -514,6 +539,7 @@ void Harpoon_Fire(edict_t *self, vec3_t start, vec3_t dir, int damage, int speed
 	harpoon->dmg = damage;
 	self->client->Harpoon.Weapon = harpoon;
 	self->client->Harpoon.State = HARPOON_STATE_FLY; // we're firing, not on hook
+
 	gi.linkentity(harpoon);
 
 	tr = gi.trace (self->s.origin, NULL, NULL, harpoon->s.origin, harpoon, MASK_SHOT);
@@ -567,21 +593,27 @@ void Harpoon_Weapon_Fire (edict_t *ent)
 	ent->client->ps.gunframe++;
 }
 
-void Harpoon_Weapon_Execute (edict_t *ent)
+void Harpoon_Weapon_Execute(edict_t *ent)
 {
-	static int	pause_frames[]	= {0};
-	static int	fire_frames[]	= {6, 0};
+	static int	pause_frames[] = {0};
+	static int	fire_frames[] = {6, 0};
 	int prevstate;
 
-// if the the attack button is still down, stay in the firing frame
-	if ((ent->client->buttons & BUTTON_ATTACK) && ent->client->weaponstate == WEAPON_FIRING && ent->client->Harpoon.Weapon)
-		ent->client->ps.gunframe = 5;
 
-	if (!(ent->client->buttons & BUTTON_ATTACK) && ent->client->Harpoon.Weapon)
+	if (ent->client->Harpoon.Weapon)
 	{
-		Harpoon_Reset(ent->client->Harpoon.Weapon, false);
-		if (ent->client->weaponstate == WEAPON_FIRING)
-			ent->client->weaponstate = WEAPON_READY;
+		if (ent->client->buttons & BUTTON_ATTACK)
+		{	
+			// if the the attack button is still down, stay in the firing frame(6)
+			if (ent->client->weaponstate == WEAPON_FIRING)
+				ent->client->ps.gunframe = 5;
+		}
+		else
+		{
+			Harpoon_Reset(ent->client->Harpoon.Weapon, false);
+			if (ent->client->weaponstate == WEAPON_FIRING)
+				ent->client->weaponstate = WEAPON_READY;
+		}
 	}
 
 //CDEATH - If changing weapon, only keep harpoon if hanging somewhere
@@ -601,6 +633,7 @@ void Harpoon_Weapon_Execute (edict_t *ent)
 		}
 	}
 //END CDEATH
+
 
 	prevstate = ent->client->weaponstate;
 	Weapon_Generic(ent, 4, 8, 12, 16, pause_frames, fire_frames, Harpoon_Weapon_Fire);

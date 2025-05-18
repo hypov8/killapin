@@ -3,10 +3,14 @@
 /*
 todo
 crowbar env light?
+hud radar. show team boss+minions. also ctrl points
+harpoon color
 
 code commented/expanded for killa
 
 */
+
+#define BOSS_ALIVE_TIME 30 //if boss dies after this time, they get to respawn as boss
 
 
 void Killapin_SetTeamScore_PlayerDied(edict_t *self, edict_t *attacker)
@@ -20,12 +24,10 @@ void Killapin_SetTeamScore_PlayerDied(edict_t *self, edict_t *attacker)
 		//boss died while BoB mode enabled
 		if (level.invincible_boss > level.framenum)
 		{
-			//*score_deadPlyr -= 10; //subtract from own team scores
 			*score_enemy += 25; //attacker team gets +25?
 		}
 		else
-		{
-			//boss died in normal mode
+		{	//boss died in normal mode
 			*score_deadPlyr -= 10; //subtract from own team scores
 		}
 	}
@@ -52,9 +54,10 @@ edict_t *Killapin_GetTeamBoss(int team)
 
 edict_t *Killapin_NewTeamBoss(int team)
 {
-	int			i, n, best=0;
-	edict_t		*doot;
-	int kills = 0, deaths = 999999, time = 0;
+	int i, n, most_kills=0, old_boss =0;
+	edict_t *player;
+	gclient_t *cl;
+	int kills = -99999, deaths = 999999, time = 0;
 
 	n = level.team_boss[team - 1];
 	if (!n)
@@ -62,8 +65,8 @@ edict_t *Killapin_NewTeamBoss(int team)
 		// randomize first boss
 		for (i = 0; i < (int)maxclients->value; i++)
 		{
-			doot = g_edicts + 1 + i;
-			if (doot->inuse && doot->client->pers.team == team)
+			player = g_edicts + 1 + i;
+			if (player->inuse && player->client->pers.team == team)
 				n = i;
 		}
 		n = rand() % (n + 1);
@@ -72,33 +75,47 @@ edict_t *Killapin_NewTeamBoss(int team)
 		{
 			if (++n > (int)maxclients->value)
 				n = 1;
-			doot = g_edicts + n;
-			if (doot->inuse && doot->client->pers.team == team)
-				return doot;
+			player = g_edicts + n;
+			if (player->inuse && player->client->pers.team == team)
+				return player;
 		}
 	}
 	else
 	{
-		for (i = 0; i < (int)maxclients->value; i++)
+		for_each_player(player, i)
+		//for (i = 0; i < (int)maxclients->value; i++)
 		{
-			doot = g_edicts + 1 + i;
-			if (doot->inuse && doot->client->pers.team == team)
+			cl = player->client;
+
+			//player = g_edicts + 1 + i;
+			if (cl->pers.team == team)
 			{
-				//simple select best player
-				if (doot->client->resp.score > kills || 
-					(doot->client->resp.score >= kills && doot->client->resp.deposited < deaths) /*|| 
-					(doot->client->resp.score >= kills && doot->client->resp.bossTime > time)*/)
+				//respawn same boss. alive for more then 2 min
+				if (cl->resp.boss_time > BOSS_ALIVE_TIME) //todo
 				{
-					//highest kills/lowest deaths/longest time being boss
-					kills = doot->client->resp.score;
-					deaths = doot->client->resp.deposited;
-					time = doot->client->resp.deposited; //todo
-					best = i+1;
+					old_boss = i;
+					cl->resp.boss_time = 0;
+					break;
+				}
+
+				//simple select best player
+				if (cl->resp.score > kills || 
+					(cl->resp.score >= kills && cl->resp.deposited < deaths))
+				{
+					//highest kills/lowest deaths
+					kills = cl->resp.score;
+					deaths = cl->resp.deposited;
+					time = cl->resp.deposited; //todo
+					most_kills = i;
 				}
 			}
 		}
-		if (best)
-			return g_edicts +  best;
+
+		//found best player
+		if (old_boss)
+			return g_edicts + old_boss;
+		else if (most_kills)
+			return g_edicts + most_kills;
 	}
 
 	return NULL;
@@ -145,13 +162,13 @@ void Killapin_KillTeam(int team)
 
 void Killapin_ShowShellColors(edict_t *self)
 {
-
+	//boss. 
 	if (self->client->resp.is_boss)
 	{
-		//boss
-		if (level.invincible_boss > level.framenum && (level.invincible_boss -500) < level.framenum)
+		//BoB mode
+		if (level.invincible_boss > level.framenum 
+			&& (level.invincible_boss -BOSS_TIME_TOTAL) < level.framenum)
 		{	
-			//BoB mode
 			self->s.effects |= EF_COLOR_SHELL;
 			switch (self->client->pers.team)
 			{
@@ -169,20 +186,17 @@ void Killapin_ShowShellColors(edict_t *self)
 		}
 		else
 		{
-			//self->s.effects |= EF_COLOR_SHELL;
-			//self->s.renderfx |= (RF_SHELL_RED|RF_SHELL_GREEN);
-			//self->s.renderfx |= (RF_SHELL_GREEN | RF_SHELL_BLUE);
+			//non BoB mode
 		}
 	}
 	else
 	{ 
 		//non boss
-		//self->s.effects |= EF_COLOR_SHELL;
-		//self->s.renderfx |= RF_SHELL_GREEN;
 	}
 
 }
 
+//this is run every server frame (10 fps)
 void Killapin_GiveItems(edict_t *ent, gclient_t *client)
 {
 	int isBoB_Mode = (level.invincible_boss > level.framenum)? 1:0;
@@ -270,6 +284,265 @@ void Killapin_GiveItems(edict_t *ent, gclient_t *client)
 			gi.unicast(ent, true);
 //			client->bonus_alpha = 0.25;
 		}
+
+		//reset players timer
 		*refill_time = 0;
+	}
+}
+
+
+//hypov8 cleanup scoreboard code
+int HUD_AppendMessage(char *baseStr, char *addStr, int *stringlength, int maxLength)
+{
+	int sLen = strlen(addStr);
+
+	if (sLen > 0)
+	{
+		if (*stringlength + sLen < maxLength)
+		{
+			strcpy(baseStr + *stringlength, addStr);
+			*stringlength += sLen;
+		}
+		else
+		{
+			gi.dprintf("scoreboard overflowed");
+			return 0; // failed/overflowed
+		}
+	}
+
+	return 1;
+}
+
+#define RADAR_RAD 54 //radious (mid point) pic is 64x. resized to 54 ingame...
+#define RADAR_DIAM RADAR_RAD*2
+#define RADAR_PIC_WIDTH 64 //pic is 64x. resized to 54 ingame...
+#define RADAR_SHIFT_X 10
+#define RADAR_SHIFT_Y 30 //down below chat
+#define ROUND_2_INT(f) ((int)(f >= 0.0 ? (f + 0.5) : (f - 0.5)))
+
+void Killapin_Build_RadarMessage(edict_t *ent, char *string, int *stringlength, int maxLen)
+{
+	char     entry[1024], *color;
+	float    mag, vecLen;
+	int      i, newX, newY, len, count = 0;
+	edict_t *src;
+	vec3_t   vFlat;
+	vec3_t   newVec, normal = {0,0,-1}, pos, norm;
+	int      team = ent->client->pers.team;
+
+	if (ent->client->pers.spectator != PLAYING)
+	{
+		return;
+	}
+
+	//count players
+	for_each_player(src, i)
+	{
+		if (src->client->pers.team == team
+			&& src->client->pers.spectator == PLAYING)
+		{
+			count++;
+		}
+	}
+	//dont show if only 1 player. todo: not needed for ctrl points
+	if (count < 2)
+		return;
+
+	Com_sprintf(entry, sizeof(entry),
+		"xl %i yt %i picn /pics/rad2.tga ",
+		RADAR_SHIFT_X, RADAR_SHIFT_Y); 
+	HUD_AppendMessage(string, entry, stringlength, maxLen);
+
+	//todo ctrl points
+
+	for_each_player(src, i)
+	{
+		if (src->client->pers.team == team
+			&& src->client->pers.spectator == PLAYING)
+		{
+			if (!src)
+				continue;
+			if (src->health <= 0)
+				continue;
+			if (src->client && src->client->pers.spectator != PLAYING)
+				continue;
+			if (ent == src)
+				continue;
+
+			VectorCopy(ent->s.origin, vFlat);
+			vFlat[2] = src->s.origin[2];
+			VectorSubtract(vFlat, src->s.origin, vFlat);
+			len = VectorLength (vFlat);
+
+			RotatePointAroundVector( newVec, normal, vFlat, ent->s.angles[1]);
+
+			VectorCopy(newVec, norm);
+			vecLen = VectorNormalize(norm);
+			vecLen *= 0.11f;
+			if (vecLen > RADAR_RAD+2)
+				vecLen = RADAR_RAD+2;
+			VectorScale(norm, vecLen, pos);
+
+			newX = ROUND_2_INT(pos[1]);
+			newY = ROUND_2_INT(pos[0]);
+
+			//move to centre
+			newX += RADAR_RAD;
+			newY += RADAR_RAD;
+
+			if (src->client->resp.is_boss)
+				newY += 2; //shift star down
+			else
+				newY -= 4; //shift dot up
+
+			//shift into position
+			newX += RADAR_SHIFT_X;
+			newY += RADAR_SHIFT_Y;
+
+			switch (src->client->pers.team)
+			{
+				case 1:  color = "900"; break; //red
+				case 2:  color = "990"; break; //yellow
+				case 3:  color = "309"; break; //purple/blue
+				default: color = "999"; break; //white
+			}
+			if (src->client->resp.is_boss)
+			{
+				Com_sprintf(entry, sizeof(entry),
+					"xl %i yt %i dmstr %s \"%s\" ", newX, newY, color, "*");
+			}
+			else
+			{
+				Com_sprintf(entry, sizeof(entry),
+					"xl %i yt %i dmstr 999 \"%s\" ", newX, newY, ".");
+			}
+			//}
+			HUD_AppendMessage(string, entry, stringlength, maxLen);
+		}
+	}
+}
+
+static void Killapin_CheckBoB_Mode()
+{
+	// enable invincible boss mode. rand
+	if (level.framenum - level.invincible_boss >= 1200 && !(rand() & 127))
+	{	
+		//add additional time for countdown
+		level.invincible_boss = level.framenum + BOSS_TIME_TOTAL + BOSS_TIME_BEGIN;// 542
+		gi.WriteByte(svc_stufftext);
+		gi.WriteString("play killapin/bstart\n");
+		gi.multicast(vec3_origin, MULTICAST_ALL);
+	}
+
+	//end boss mode
+	if (level.framenum == level.invincible_boss - 1)
+	{
+		gi.WriteByte(svc_stufftext);
+		gi.WriteString("play killapin/bend\n");
+		gi.multicast(vec3_origin, MULTICAST_ALL);
+	}
+
+	//begin BoB mode. countdown warning finished
+	if ((level.framenum == level.invincible_boss - BOSS_TIME_TOTAL))
+	{
+		int i;
+		edict_t *player;
+
+		for_each_player (player, i)
+		{
+			strcpy(player->client->resp.message, "BOSS TIME HAS STARTED!");
+			player->client->resp.message_frame = level.framenum + 30;
+			if (!player->client->showscores)
+				player->client->resp.scoreboard_frame = 0;
+		}
+	}
+}
+
+static void Killapin_Radar()
+{
+		int i;
+		edict_t *player;
+
+	//update radar.. non very efficent
+	for_each_player(player, i)
+	{
+		if (player->client->showscores == NO_SCOREBOARD && player->client->pers.spectator == PLAYING && level.framenum %10 == 0)
+			player->client->resp.scoreboard_frame = 0;
+	}
+}
+
+static void Killapin_SpawnPlayers()
+{
+	int			i, team;
+	edict_t		*boss, *player;
+
+	// respawn a player from each team
+	for (team = 1; team <= (int)teams->value; team++)
+	{
+		if (level.framenum >= level.next_spawn[team - 1])
+		{
+			boss = Killapin_GetTeamBoss(team);
+			if (!boss)
+			{
+				boss = Killapin_NewTeamBoss(team);
+				if (boss)
+					respawn(boss);
+				continue;
+			}
+			for_each_player (player, i)
+			{
+				if (player->client->pers.team == team 
+					&& (player->deadflag || !player->solid) 
+					&& level.time >= player->client->respawn_time)
+				{
+					respawn(player);
+					break;
+				}
+			}
+		}
+	}
+}
+
+static void Killapin_UpdateCounters()
+{
+	if (level.framenum % 10 == 0)
+	{
+		int i;
+		edict_t *player;
+
+		for_each_player(player, i)
+		{
+			if (player->client->pers.spectator == PLAYING)
+			{
+				if (player->client->resp.is_boss)
+					player->client->resp.boss_time += 1; //add 1 second to boss
+			}
+		}
+	}
+}
+
+void Killapin_RunFrame()
+{
+	if (level.modeset == PUBLIC || level.modeset == MATCH)
+	{
+		Killapin_CheckBoB_Mode();
+		Killapin_SpawnPlayers();
+		Killapin_UpdateCounters();
+		Killapin_Radar();
+	}
+	else if (level.intermissiontime && level.time < level.intermissiontime + 20)
+	{
+		if (level.framenum == level.startframe + 10)
+		{
+			gi.WriteByte(svc_stufftext);
+			gi.WriteString("play killapin/gend\n");
+			gi.multicast(vec3_origin, MULTICAST_ALL);
+		}
+		else if (!((level.framenum - level.startframe - 25) % 150))
+		{
+			gi.WriteByte(svc_stufftext);
+			gi.WriteString("play world/cypress4\n");
+			gi.multicast(vec3_origin, MULTICAST_ALL);
+		}
 	}
 }
