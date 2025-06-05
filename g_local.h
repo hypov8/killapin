@@ -41,8 +41,8 @@
 #define PREGAME				0
 #define PUBLICSPAWN			1
 #define PUBLIC				2
-#define	ENDGAME				3
-#define	ENDGAMEVOTE			4
+#define ENDGAME				3
+#define ENDGAMEVOTE			4
 #define MATCHSETUP			5
 #define MATCHCOUNT			6
 #define MATCHSPAWN			7

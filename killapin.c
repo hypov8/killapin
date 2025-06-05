@@ -575,10 +575,82 @@ static void Killapin_UpdateCounters()
 	}
 }
 
+/*
+check for 2 teams with 2 members. 
+restart game when first detected
+*/
+static void Killapin_CheckValidTeams()
+{
+	int i;
+	static int hasRespawned = 0;
+	static int restartFrame = 0;
+
+	//count player while spawning
+	if (level.modeset == PUBLIC)
+	{
+		if (!hasRespawned)
+		{
+			int teamCounts[4] = {0, 0, 0, 0}; 
+			int ready[3] = {0, 0, 0};
+			edict_t *player;
+
+			for_each_player(player, i)
+			{
+				if (player->client->resp.is_boss)
+					teamCounts[player->client->pers.team] |= 1; //is boss
+				else
+					teamCounts[player->client->pers.team] |= 2; //is minion
+			}
+			ready[0] = (teamCounts[1] & 3) == 3; //team1 has boss+minion?
+			ready[1] = (teamCounts[2] & 3) == 3; //team2 has boss+minion?
+			ready[2] = (teamCounts[3] & 3) == 3; //team3 has boss+minion?
+
+			if ((ready[0] + ready[1]+ ready[2]) >=2)  //atleast 2 teams valid (2+ players)
+			{
+				//restart round
+				hasRespawned = -1;
+
+				//countdown. 4 seconds
+				restartFrame = level.framenum + 41;
+
+				//reset bosstime
+				level.invincible_boss = 0;
+
+				//countdown
+				gi.WriteByte(svc_stufftext);
+				gi.WriteString("play killapin/gstart\n");
+				gi.multicast(vec3_origin, MULTICAST_ALL);
+			}
+		}
+		else if (hasRespawned == -1)
+		{
+			//countdown hit?
+			if (level.framenum > restartFrame)
+			{
+				//Start_Pub(); //local to tourney
+				CheckStartPub(); //this works anyway
+
+				team_cash[1] = 0; //reset team scores
+				team_cash[2] = 0;
+				team_cash[3] = 0;
+
+				hasRespawned = 1; //disable untill map change
+			}
+		}
+	}
+	else
+	{
+		//reset game
+		hasRespawned = 0;
+		restartFrame = 0;
+	}
+}
+
 void Killapin_RunFrame()
 {
 	if (level.modeset == PUBLIC || level.modeset == MATCH)
 	{
+		Killapin_CheckValidTeams();
 		Killapin_CheckBoB_Mode();
 		Killapin_SpawnPlayers();
 		Killapin_UpdateCounters();
