@@ -362,6 +362,9 @@ void InitGame (void)
 		*/
 		gi.cvar_forceset("g_features", va("%d", GMF_CLIENTPOV | GMF_CLIENTNOENTS | GMF_WANT_ALL_DISCONNECTS | GMF_WANT_COUNTRY | GMF_CLIENTTEAM));
 	}
+
+//killapin
+	Killapin_Init();
 }
 
 //=========================================================

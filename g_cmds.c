@@ -3111,7 +3111,7 @@ void ClientCommand (edict_t *ent)
 		int argc = gi.argc();
 		if (!ent->client->pers.pakversion)
 		{
-			const int required_version = 10;  // minimum required client version
+			const int required_version = PAK_VERSION;  // minimum required client version
 
 			ent->client->pers.pakversion = atoi(gi.argv(1));
 			if (ent->client->pers.pakversion < required_version)

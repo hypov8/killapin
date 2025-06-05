@@ -1541,12 +1541,15 @@ void Weapon_Crowbar_Hit (edict_t *ent)
 	int		damage;
 
 	if (deathmatch_value)
-		damage = 75;	// This should be very powerful in deathmatch
+//killapin
+		damage = 100;
+//end killapin
+		//damage = 75;	// This should be very powerful in deathmatch
 	else
 		damage = 12;// - (int)(skill->value-1);
 
 	Crowbar_Hit (ent, vec3_origin, damage); 
-   	ent->client->ps.gunframe++;	
+		ent->client->ps.gunframe++;	
 }
 
 void Weapon_Crowbar (edict_t *ent)

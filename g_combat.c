@@ -422,8 +422,8 @@ void T_Damage (edict_t *targ, edict_t *inflictor, edict_t *attacker, vec3_t dir,
 	{
 		dmg *= 4;
 	}
-	if (mod == MOD_CROWBAR && attacker->client && attacker->client->resp.is_boss && targ->client && !targ->client->resp.is_boss)
-		dmg *= 2;
+
+	Killapin_AdjustDamage(attacker, targ, &dmg, mod); //is_boss
 
 	client = targ->client;
 
@@ -665,8 +665,7 @@ void T_Damage (edict_t *targ, edict_t *inflictor, edict_t *attacker, vec3_t dir,
 		SpawnDamage (targ, te_sparks, sparkspoint, normal, save);
 	}
 
-	if (client && client->resp.is_boss && attacker->client && attacker->client->resp.is_boss)
-		dflags |= DAMAGE_NO_PROTECTION;
+	Killapin_Add_NoDamageProtection(attacker, targ, &dflags); //is_boss
 
 	// check for invincibility
 	if ((client && client->invincible_framenum > level.framenum) && !(dflags & DAMAGE_NO_PROTECTION))

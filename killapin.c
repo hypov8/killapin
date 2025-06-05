@@ -10,25 +10,70 @@ code commented/expanded for killa
 
 */
 
-#define BOSS_ALIVE_TIME 30 //if boss dies after this time, they get to respawn as boss
+//killapin
+cvar_t	*bosshp;
 
+#define BOSS_ALIVE_TIME_TOTAL   45 //if boss dies after this time, they get to respawn as boss
+
+#define BOSS_ALIVE_TIME_BONUS   15 //time in seconds if the boss is live and will recieve points.
+#define BOSS_ALIVE_BONUS_POINTS  1 //score to ad if alive	 
+
+
+//respawn health
+void Killapin_SetBossMaxHealth(gclient_t *boss)
+{
+	if (boss->resp.is_boss)
+	{
+		boss->pers.max_health = (int)bosshp->value; //max hp
+		boss->pers.health = (int)bosshp->value; //start hp
+	}
+}
+
+//damage multiplyer
+void Killapin_AdjustDamage(edict_t *attacker, edict_t *target, float *dmg, int mod)
+{
+	if (mod == MOD_CROWBAR && 
+		attacker->client && attacker->client->resp.is_boss && //boss attacker
+		target->client && !target->client->resp.is_boss)      //minion enemy
+	{
+		*dmg *= 2;
+	}
+}
+
+//disable protection between boss/boss attacks
+void Killapin_Add_NoDamageProtection(edict_t *attacker, edict_t *target, int *dflags)
+{
+	if (attacker->client && attacker->client->resp.is_boss && //boss attacker
+		target->client && target->client->resp.is_boss)        //boss enemy
+	{
+		*dflags |= DAMAGE_NO_PROTECTION;
+	}
+}
 
 void Killapin_SetTeamScore_PlayerDied(edict_t *self, edict_t *attacker)
 {
-	int *score_deadPlyr = &team_cash[self->client->pers.team] ;
+	int *score_deadPlyr = &team_cash[self->client->pers.team];
 	int *score_enemy = &team_cash[attacker->client->pers.team];
+	int diedAsBoss = self->client->resp.is_boss;
+	int atackerIsBoss = attacker->client->resp.is_boss;
 
 	//player died was a boss
-	if (self->client->resp.is_boss)
+	if (diedAsBoss)
 	{
-		//boss died while BoB mode enabled
-		if (level.invincible_boss > level.framenum)
+		if (atackerIsBoss)
 		{
-			*score_enemy += 25; //attacker team gets +25?
+			//boss died while BoB mode enabled
+			if (level.invincible_boss > level.framenum)
+				*score_enemy += 25; //attacker team gets +25?
+			else
+				//boss died in normal mode
+				*score_deadPlyr -= 10; //subtract from own team scores
 		}
-		else
-		{	//boss died in normal mode
-			*score_deadPlyr -= 10; //subtract from own team scores
+		else //attacker is minion. (no BvB mode)
+		{
+			//boss died from minion
+			*score_deadPlyr -= 2; //subtract from own team scores
+			*score_enemy += 2; //attacker team gets +2
 		}
 	}
 	else
@@ -60,7 +105,8 @@ edict_t *Killapin_NewTeamBoss(int team)
 	int kills = -99999, deaths = 999999, time = 0;
 
 	n = level.team_boss[team - 1];
-	if (!n)
+	if (!n && //no boss
+		!level.next_spawn[team - 1])//boss left team?
 	{
 		// randomize first boss
 		for (i = 0; i < (int)maxclients->value; i++)
@@ -90,8 +136,8 @@ edict_t *Killapin_NewTeamBoss(int team)
 			//player = g_edicts + 1 + i;
 			if (cl->pers.team == team)
 			{
-				//respawn same boss. alive for more then 2 min
-				if (cl->resp.boss_time > BOSS_ALIVE_TIME) //todo
+				//respawn same boss. alive for more then x seconds
+				if (cl->resp.boss_time > BOSS_ALIVE_TIME_TOTAL) //todo
 				{
 					old_boss = i;
 					cl->resp.boss_time = 0;
@@ -126,7 +172,8 @@ void Killapin_KillTeam(int team)
 	int i;
 	edict_t *doot;
 	edict_t *boss = Killapin_GetTeamBoss(team);
-	gi.bprintf(PRINT_HIGH, boss ? "The %s boss has fallen!\n" : "The %s boss fled!\n", team_names[team]);
+	gi.bprintf(PRINT_HIGH, 
+		boss ? "The %s boss has fallen!\n" : "The %s boss fled!\n", team_names[team]);
 	for_each_player (doot, i)
 	{
 		if (doot->client->pers.team == team)
@@ -152,7 +199,8 @@ void Killapin_KillTeam(int team)
 			doot->client->resp.is_boss = false;
 			doot->client->respawn_time = 0;
 		}
-		Com_sprintf(doot->client->resp.message, sizeof(doot->client->resp.message) - 1, boss ? "The %s boss has fallen!" : "The %s boss fled!", team_names[team]);
+		Com_sprintf(doot->client->resp.message, sizeof(doot->client->resp.message) - 1, 
+			boss ? "The %s boss has fallen!" : "The %s boss fled!", team_names[team]);
 		doot->client->resp.message_frame = level.framenum + 30;
 		if (!doot->client->showscores)
 			doot->client->resp.scoreboard_frame = 0;
@@ -515,7 +563,13 @@ static void Killapin_UpdateCounters()
 			if (player->client->pers.spectator == PLAYING)
 			{
 				if (player->client->resp.is_boss)
+				{
 					player->client->resp.boss_time += 1; //add 1 second to boss
+
+					//give score to boss that lives past 15 seconds
+					if (player->client->resp.boss_time % BOSS_ALIVE_TIME_BONUS == 0)
+						team_cash[player->client->pers.team] += BOSS_ALIVE_BONUS_POINTS;
+				}
 			}
 		}
 	}
@@ -545,4 +599,10 @@ void Killapin_RunFrame()
 			gi.multicast(vec3_origin, MULTICAST_ALL);
 		}
 	}
+}
+
+void Killapin_Init()
+{
+	bosshp = gi.cvar( "bosshp", "250", 0);
+
 }

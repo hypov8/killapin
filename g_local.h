@@ -1203,6 +1203,7 @@ typedef struct {
 //
 #define  BOSS_TIME_TOTAL 500
 #define  BOSS_TIME_BEGIN 42 //4 seconds countdown
+#define  PAK_VERSION 11
 void     Killapin_SetTeamScore_PlayerDied(edict_t *self, edict_t *attacker);
 edict_t *Killapin_GetTeamBoss(int team);
 edict_t *Killapin_NewTeamBoss(int team);
@@ -1211,6 +1212,10 @@ void     Killapin_ShowShellColors(edict_t *ent);
 void     Killapin_GiveItems(edict_t *self, gclient_t *client);
 void     Killapin_RunFrame(void);
 void     Killapin_Build_RadarMessage(edict_t *ent, char *string, int *stringlength, int maxLen);
+void     Killapin_AdjustDamage(edict_t *attacker, edict_t *target, float *dmg, int mod);
+void     Killapin_Add_NoDamageProtection(edict_t *attacker, edict_t *target, int *dflags);
+void     Killapin_SetBossMaxHealth(gclient_t *boss);
+void     Killapin_Init();
 
 //============================================================================
 
