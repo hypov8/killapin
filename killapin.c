@@ -586,7 +586,7 @@ static void Killapin_CheckValidTeams()
 	static int restartFrame = 0;
 
 	//count player while spawning
-	if (level.modeset == PUBLIC)
+	if (level.modeset == PUBLIC || level.modeset == MATCH)
 	{
 		if (!hasRespawned)
 		{
@@ -607,6 +607,11 @@ static void Killapin_CheckValidTeams()
 
 			if ((ready[0] + ready[1]+ ready[2]) >=2)  //atleast 2 teams valid (2+ players)
 			{
+				if (level.framenum < level.startframe + 30)
+				{
+					hasRespawned = 1;
+					return; //fresh game, with players. dont do anything
+				}
 				//restart round
 				hasRespawned = -1;
 
@@ -648,9 +653,10 @@ static void Killapin_CheckValidTeams()
 
 void Killapin_RunFrame()
 {
+	Killapin_CheckValidTeams();
+
 	if (level.modeset == PUBLIC || level.modeset == MATCH)
 	{
-		Killapin_CheckValidTeams();
 		Killapin_CheckBoB_Mode();
 		Killapin_SpawnPlayers();
 		Killapin_UpdateCounters();
