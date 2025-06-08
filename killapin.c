@@ -97,74 +97,91 @@ edict_t *Killapin_GetTeamBoss(int team)
 	return NULL;
 }
 
-edict_t *Killapin_NewTeamBoss(int team)
+static edict_t *Killapin_FindTeamPlayerRand(int team)
+{
+	int i, playerID;
+	int maxPlayers = (int)maxclients->value;
+	edict_t *player;
+
+	// randomize first boss
+	for (i = 0; i < maxPlayers; i++)
+	{
+		player = g_edicts + 1 + i;
+		if (player->inuse && player->client->pers.team == team)
+			playerID = i;
+	}
+	playerID = rand() % (playerID + 1);
+
+	for (i = 0; i < maxPlayers; i++)
+	{
+		if (++playerID > maxPlayers)
+			playerID = 1;
+		player = g_edicts + playerID;
+		if (player->inuse && player->client->pers.team == team)
+			return player;
+	}
+
+	//invalid
+	return NULL;
+}
+
+static edict_t *Killapin_FindTeamPlayerBest(int team)
 {
 	int i, n, most_kills=0, old_boss =0;
+	int kills = -99999, deaths = 999999, time = 0;
 	edict_t *player;
 	gclient_t *cl;
-	int kills = -99999, deaths = 999999, time = 0;
 
-	n = level.team_boss[team - 1];
-	if (!n && //no boss
-		!level.next_spawn[team - 1])//boss left team?
+	for_each_player(player, i)
 	{
-		// randomize first boss
-		for (i = 0; i < (int)maxclients->value; i++)
-		{
-			player = g_edicts + 1 + i;
-			if (player->inuse && player->client->pers.team == team)
-				n = i;
-		}
-		n = rand() % (n + 1);
+		cl = player->client;
 
-		for (i = 0; i < (int)maxclients->value; i++)
+		if (cl->pers.team == team)
 		{
-			if (++n > (int)maxclients->value)
-				n = 1;
-			player = g_edicts + n;
-			if (player->inuse && player->client->pers.team == team)
-				return player;
-		}
-	}
-	else
-	{
-		for_each_player(player, i)
-		//for (i = 0; i < (int)maxclients->value; i++)
-		{
-			cl = player->client;
-
-			//player = g_edicts + 1 + i;
-			if (cl->pers.team == team)
+			//respawn same boss. alive for more then x seconds
+			if (cl->resp.boss_time > BOSS_ALIVE_TIME_TOTAL) //todo
 			{
-				//respawn same boss. alive for more then x seconds
-				if (cl->resp.boss_time > BOSS_ALIVE_TIME_TOTAL) //todo
-				{
-					old_boss = i;
-					cl->resp.boss_time = 0;
-					break;
-				}
+				old_boss = i;
+				cl->resp.boss_time = 0;
+				break;
+			}
 
-				//simple select best player
-				if (cl->resp.score > kills || 
-					(cl->resp.score >= kills && cl->resp.deposited < deaths))
-				{
-					//highest kills/lowest deaths
-					kills = cl->resp.score;
-					deaths = cl->resp.deposited;
-					time = cl->resp.deposited; //todo
-					most_kills = i;
-				}
+			//simple select best player
+			if (cl->resp.score > kills || 
+				(cl->resp.score >= kills && cl->resp.deposited < deaths))
+			{
+				//highest kills/lowest deaths
+				kills = cl->resp.score;
+				deaths = cl->resp.deposited;
+				time = cl->resp.deposited; //todo
+				most_kills = i;
 			}
 		}
-
-		//found best player
-		if (old_boss)
-			return g_edicts + old_boss;
-		else if (most_kills)
-			return g_edicts + most_kills;
 	}
 
+	//found best player
+	if (old_boss)
+		return g_edicts + old_boss;
+	else if (most_kills)
+		return g_edicts + most_kills;
+
+	//invalid
 	return NULL;
+}
+
+edict_t *Killapin_NewTeamBoss(int team)
+{
+	//level has never spawned a boss for this team
+	if (!level.next_spawn[team - 1])
+	{
+		//random pick a new boss.
+		return Killapin_FindTeamPlayerRand(team);
+	}
+	else 
+	{
+		//pick next/best player as boss
+		return Killapin_FindTeamPlayerBest(team);	
+	}
 }
 
 void Killapin_KillTeam(int team)
@@ -632,12 +649,24 @@ static void Killapin_CheckValidTeams()
 			//countdown hit?
 			if (level.framenum > restartFrame)
 			{
+				int i;
+				edict_t *player;
+
 				//Start_Pub(); //local to tourney
 				CheckStartPub(); //this works anyway
 
 				team_cash[1] = 0; //reset team scores
 				team_cash[2] = 0;
 				team_cash[3] = 0;
+				//reset player scores
+				for_each_player(player, i)
+				{
+					player->client->resp.acchit = 0;
+					player->client->resp.accshot = 0;
+					player->client->resp.score = 0;
+					if (player->health > 0) //alive
+						player->health = player->client->pers.max_health; 
+				}
 
 				hasRespawned = 1; //disable untill map change
 			}
