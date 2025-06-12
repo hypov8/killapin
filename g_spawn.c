@@ -1099,9 +1099,12 @@ void SpawnEntities (char *mapname, char *entities, char *spawnpoint)
 	for (i=0 ; i<game.maxclients ; i++)
 	{
 		g_edicts[i+1].client = game.clients + i;
+
+#if 0 //killapin. disabled. dont reset player team state
 		// move everyone to spec at start of map
 		game.clients[i].pers.team = 0;
 		game.clients[i].pers.spectator = SPECTATING;
+#endif
 	}
 
 	ent = NULL;
