@@ -43,6 +43,7 @@ The normal starting point for a level.
 */
 void SP_info_player_start(edict_t *self)
 {
+	SP_info_player_show(self, 0); //killapin
 }
 
 /*QUAKED info_player_deathmatch (1 0 1) (-16 -16 -24) (16 16 48)
@@ -52,6 +53,7 @@ potential spawning position for deathmatch games
 */
 void SP_info_player_deathmatch(edict_t *self)
 {
+	SP_info_player_show(self, 1); //killapin
 }
 
 /*QUAKED info_player_coop (1 0 1) (-16 -16 -24) (16 16 48)
@@ -60,6 +62,7 @@ potential spawning position for coop games
 
 void SP_info_player_coop(edict_t *self)
 {
+	SP_info_player_show(self, 2); //killapin
 }
 
 
@@ -670,10 +673,10 @@ float	PlayersRangeFromSpot (edict_t *spot)
 		// reduce the chances of this spot if an enemy is in sight of it
 		if (gi.inPVS(spot->s.origin, player->s.origin))
 			playerdistance *= 0.5;
-		// give greater priority to distance from other bosses
-		if (player->client->resp.is_boss)
-			playerdistance *= 0.16;
 
+		if (!Killapin_AdjustSpawnpoint(player->client, &playerdistance))
+			continue;
+		
 		if (playerdistance < bestplayerdistance)
 			bestplayerdistance = playerdistance;
 	}
@@ -772,8 +775,8 @@ edict_t *SelectFarthestDeathmatchSpawnPoint (edict_t *ent)
 	{
 		bestplayerdistance = PlayersRangeFromSpot (spot);
 
-		if ((0.8 * bestplayerdistance) > bestdistance
-			|| (bestplayerdistance >= (0.8 * bestdistance) && !(rand() & 3)))
+		if ((0.8f * bestplayerdistance) > bestdistance
+			|| (bestplayerdistance >= (0.8f * bestdistance) && !(rand() & 3)))
 		{
 			bestspot = spot;
 			bestdistance = bestplayerdistance;

@@ -1216,6 +1216,8 @@ void     Killapin_AdjustDamage(edict_t *attacker, edict_t *target, float *dmg, i
 void     Killapin_Add_NoDamageProtection(edict_t *attacker, edict_t *target, int *dflags);
 void     Killapin_SetBossMaxHealth(gclient_t *boss);
 void     Killapin_Init();
+int      Killapin_AdjustSpawnpoint(gclient_t *client, float *playerDistance);
+void     SP_info_player_show(edict_t *self, int skin);
 
 //============================================================================
 

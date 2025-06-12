@@ -12,12 +12,37 @@ code commented/expanded for killa
 
 //killapin
 cvar_t	*bosshp;
+cvar_t	*bossbest; //best player as boss
+cvar_t	*bossonly; //only consider a boss for spawpoint
+cvar_t	*showspawns; //show dm locations
+
 
 #define BOSS_ALIVE_TIME_TOTAL   45 //if boss dies after this time, they get to respawn as boss
 
 #define BOSS_ALIVE_TIME_BONUS   15 //time in seconds if the boss is live and will recieve points.
 #define BOSS_ALIVE_BONUS_POINTS  1 //score to ad if alive	 
 
+
+
+void SP_info_player_show(edict_t *self, int skin)
+{
+	if (!showspawns->value)
+		return;
+
+	self->solid = SOLID_NOT;
+	self->movetype = MOVETYPE_NONE;
+	VectorSet (self->mins, -16, -16, -24);
+	VectorSet (self->maxs, 16, 16, 48);
+
+	self->s.skinnum = skin;
+	self->model = "models/bot/spawn.md2";
+	self->s.modelindex = gi.modelindex(self->model);
+	self->s.scale = 0;
+	self->s.renderfx2 = RF2_NOSHADOW;
+	self->s.renderfx2 |= RF2_SURF_ALPHA;
+	self->s.renderfx = RF_FULLBRIGHT; // || RF_TRANSLUCENT;
+	gi.linkentity (self);
+}
 
 //respawn health
 void Killapin_SetBossMaxHealth(gclient_t *boss)
@@ -171,8 +196,8 @@ static edict_t *Killapin_FindTeamPlayerBest(int team)
 
 edict_t *Killapin_NewTeamBoss(int team)
 {
-	//level has never spawned a boss for this team
-	if (!level.next_spawn[team - 1])
+	//level has never spawned a boss for this team. or rand cvar
+	if (!level.next_spawn[team - 1] || !bossbest->value)
 	{
 		//random pick a new boss.
 		return Killapin_FindTeamPlayerRand(team);
@@ -536,6 +561,22 @@ static void Killapin_Radar()
 	}
 }
 
+int Killapin_AdjustSpawnpoint(gclient_t *client, float *playerDistance)
+{
+	if (client->resp.is_boss)
+	{
+		// give greater priority to distance from other bosses
+		*playerDistance *= 0.16; //make boss seem closer
+	}
+	else if (bossonly->value)
+	{
+		//skip player in range checking
+		return 0;
+	}
+
+	return 1;
+}
+
 static void Killapin_SpawnPlayers()
 {
 	int			i, team;
@@ -710,6 +751,8 @@ void Killapin_RunFrame()
 
 void Killapin_Init()
 {
-	bosshp = gi.cvar( "bosshp", "250", 0);
-
+	bosshp = gi.cvar( "bosshp", "250", 0); //default spawn health
+	bossbest = gi.cvar( "bossbest", "1", 0); //best player as boss (0=random selected boss)
+	bossonly = gi.cvar( "bossonly", "1", 0); //only consider a boss for spawpoint(0= considered minions to)
+	showspawns = gi.cvar( "showspawns", "0", 0); //show dm locations
 }
