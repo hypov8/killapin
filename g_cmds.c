@@ -61,9 +61,12 @@ void Cmd_Spec_f (edict_t *self)
 		self->client->resp.is_boss = false;
 		level.team_boss[self->client->pers.team - 1] = 0; //hypov8 add. boss going to spec
 		killteam = self->client->pers.team;
+
 	}
 	else
 		killteam = 0;
+
+	self->client->resp.boss_time = 0; //killapin: dont let player respawn as best player
 	self->client->pers.team = 0;
 	self->client->pers.spectator = SPECTATING;
 	if (self->solid != SOLID_NOT || self->deadflag)

@@ -214,6 +214,7 @@ qboolean Teamplay_ValidateJoinTeam( edict_t *self, int teamindex )
 	Teamplay_ValidateSkin( self );
 
 //	InitClientPersistant (self->client);
+	self->client->resp.boss_time = 0; //killapin reset best player
 
 	self->client->pers.team = teamindex;
 	self->client->pers.spectator = PLAYING;

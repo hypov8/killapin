@@ -152,7 +152,7 @@ static edict_t *Killapin_FindTeamPlayerRand(int team)
 
 static edict_t *Killapin_FindTeamPlayerBest(int team)
 {
-	int i, n, most_kills=0, old_boss =0;
+	int i, n, most_kills=0, old_boss =0, bestIsBoss = 0;
 	int kills = -99999, deaths = 999999, time = 0;
 	edict_t *player;
 	gclient_t *cl;
@@ -161,10 +161,11 @@ static edict_t *Killapin_FindTeamPlayerBest(int team)
 	{
 		cl = player->client;
 
+		//search for players on same team
 		if (cl->pers.team == team)
 		{
 			//respawn same boss. alive for more then x seconds
-			if (cl->resp.boss_time > BOSS_ALIVE_TIME_TOTAL) //todo
+			if (cl->resp.boss_time > BOSS_ALIVE_TIME_TOTAL)
 			{
 				old_boss = i;
 				cl->resp.boss_time = 0;
@@ -172,15 +173,20 @@ static edict_t *Killapin_FindTeamPlayerBest(int team)
 			}
 
 			//simple select best player
-			if (cl->resp.score > kills || 
-				(cl->resp.score >= kills && cl->resp.deposited < deaths))
+			if (cl->resp.score > kills ||
+				(cl->resp.score == kills && !bestIsBoss && cl->resp.deposited < deaths)) //compare deaths if not boss
 			{
 				//highest kills/lowest deaths
 				kills = cl->resp.score;
 				deaths = cl->resp.deposited;
 				time = cl->resp.deposited; //todo
 				most_kills = i;
+
+				//prevent minion with same kills becomming boss
+				bestIsBoss = (cl->resp.boss_time) ? 1: 0; 
 			}
+			//reset bosstimer
+			cl->resp.boss_time = 0;
 		}
 	}
 

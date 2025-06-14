@@ -1203,7 +1203,7 @@ typedef struct {
 //
 #define  BOSS_TIME_TOTAL 500
 #define  BOSS_TIME_BEGIN 42 //4 seconds countdown
-#define  PAK_VERSION 11
+#define  PAK_VERSION 12
 void     Killapin_SetTeamScore_PlayerDied(edict_t *self, edict_t *attacker);
 edict_t *Killapin_GetTeamBoss(int team);
 edict_t *Killapin_NewTeamBoss(int team);

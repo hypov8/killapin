@@ -711,6 +711,21 @@ void T_Damage (edict_t *targ, edict_t *inflictor, edict_t *attacker, vec3_t dir,
 		if (mod == MOD_FLAMETHROWER)
 		{
 		}
+		else if (mod == MOD_CROWBAR)
+		{
+			//killapin boss using knife
+			//SpawnDamage (targ, TE_GIBS, sparkspoint, normal, take);
+			// send the client-side gib message
+			gi.WriteByte (svc_temp_entity);
+			gi.WriteByte (TE_GIBS);
+			gi.WritePosition (sparkspoint);
+			gi.WriteDir (normal); //vec3_origin
+			gi.WriteByte ( 1 + (rand() % 2) );	// number of gibs
+			gi.WriteByte ( 20+ (rand() % 20) );	// scale of direction to add to velocity
+			gi.WriteByte ( 16 );	// random offset scale
+			gi.WriteByte ( 10 );	// random velocity scale
+			gi.multicast (sparkspoint, MULTICAST_PVS);
+		}
 		else
 		{
 			if ((targ->svflags & SVF_MONSTER) || (client))
