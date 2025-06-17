@@ -326,7 +326,7 @@ void ClientObituary (edict_t *self, edict_t *inflictor, edict_t *attacker)
 					}
 					else
 					{
-						attacker->client->resp.score++;
+						attacker->client->resp.score++; //add 1 frag
 
 						if ((int)teamplay->value == TM_GANGBANG)
 						{
@@ -1653,7 +1653,7 @@ void ClientUserinfoChanged (edict_t *ent, char *userinfo)
 			{
 				// stop name clashes
 				edict_t		*cl_ent;
-				int i, b;
+				int i;
 				for (i=0 ; i<game.maxclients ; i++)
 				{
 					cl_ent = g_edicts + 1 + i;
@@ -2679,7 +2679,7 @@ any other entities in the world.
 void ClientBeginServerFrame (edict_t *ent)
 {
 	gclient_t	*client;
-	int			buttonMask;
+	//int			buttonMask;
 
 	client = ent->client;
 

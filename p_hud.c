@@ -355,7 +355,7 @@ void SpectatorScoreboardMessage (edict_t *ent)
 void VoteMapScoreboardMessage (edict_t *ent)
 {
 	char	entry[1024];
-	char	temp[64];
+	//char	temp[64];
 	char	string[1400];
 	int		stringlength;
 	int		i, j, w;
@@ -1464,11 +1464,11 @@ void UpdateStatusHUD(edict_t *ent)
 	char	entry[1024];
 	char	string[1400];
 	int		stringlength;
-	int		i, j, k;
-	int		x, w, cw;
+	int		i, j;
+	//int		x, w, cw;
 	gclient_t	*cl;
 	edict_t		*cl_ent;
-	int		yofs = 0, tp;
+	int		yofs = 0;
 	int		maxlen = (CS_SERVER_VERSION - level.cs_statusbarex) * MAX_QPATH;
 
 	string[0] = 0;

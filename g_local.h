@@ -1077,6 +1077,7 @@ void NewCutSceneCamera (edict_t *ent);
 void player_pain (edict_t *self, edict_t *other, float kick, int damage, int mdx_part, int mdx_subobject);
 void player_die (edict_t *self, edict_t *inflictor, edict_t *attacker, int damage, vec3_t point, int mdx_part, int mdx_subobject);
 void ClientBeginDeathmatch (edict_t *ent);
+qboolean IsFemale(edict_t *ent);
 
 //
 // g_svcmds.c
@@ -1219,6 +1220,11 @@ void     Killapin_Init();
 int      Killapin_AdjustSpawnpoint(gclient_t *client, float *playerDistance);
 void     SP_info_player_show(edict_t *self, int skin);
 
+//
+// Harpoon.c
+//
+void Harpoon_Draw_Cable(edict_t *self);
+
 //============================================================================
 
 // client_t->anim_priority
@@ -1320,6 +1326,7 @@ typedef struct
 
 	int			is_spawn;  
 	int			is_boss; //killapin
+	int			hasBeenBoss; //killapin. let each player be boss once
 	int			boss_time; //killapin. store time as boss in seconds
 
 	int			accshot, acchit, fav[9];

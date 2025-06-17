@@ -13,14 +13,17 @@ code commented/expanded for killa
 //killapin
 cvar_t	*bosshp;
 cvar_t	*bossbest; //best player as boss
-cvar_t	*bossonly; //only consider a boss for spawpoint
+cvar_t	*bossonce; //let each player be boss once
+cvar_t	*bossonly; //only consider a boss for spawpoint distance/locations
 cvar_t	*showspawns; //show dm locations
 
+cvar_t	*bosstimetotal;
+cvar_t	*bosstimebonus;
 
 #define BOSS_ALIVE_TIME_TOTAL   45 //if boss dies after this time, they get to respawn as boss
-
 #define BOSS_ALIVE_TIME_BONUS   15 //time in seconds if the boss is live and will recieve points.
-#define BOSS_ALIVE_BONUS_POINTS  1 //score to ad if alive	 
+#define BOSS_ALIVE_BONUS_POINTS  1 //score to add if alive	 
+#define BOSS_START_HP          250 //BOSS START hp
 
 
 
@@ -81,6 +84,7 @@ void Killapin_SetTeamScore_PlayerDied(edict_t *self, edict_t *attacker)
 	int *score_enemy = &team_cash[attacker->client->pers.team];
 	int diedAsBoss = self->client->resp.is_boss;
 	int atackerIsBoss = attacker->client->resp.is_boss;
+	int *attackerScore = &attacker->client->resp.deposited;
 
 	//player died was a boss
 	if (diedAsBoss)
@@ -89,16 +93,23 @@ void Killapin_SetTeamScore_PlayerDied(edict_t *self, edict_t *attacker)
 		{
 			//boss died while BoB mode enabled
 			if (level.invincible_boss > level.framenum)
+			{
 				*score_enemy += 25; //attacker team gets +25?
+				*attackerScore += 25; //add score for killer. used to decide next boss
+			}
 			else
+			{
 				//boss died in normal mode
 				*score_deadPlyr -= 10; //subtract from own team scores
+				*attackerScore += 15; //add score for killer. used to decide next boss
+			}
 		}
 		else //attacker is minion. (no BvB mode)
 		{
 			//boss died from minion
 			*score_deadPlyr -= 2; //subtract from own team scores
 			*score_enemy += 2; //attacker team gets +2
+			*attackerScore += 5; //add score for killer. used to decide next boss
 		}
 	}
 	else
@@ -106,6 +117,7 @@ void Killapin_SetTeamScore_PlayerDied(edict_t *self, edict_t *attacker)
 		//non boss death
 		*score_deadPlyr -= 1; //subtract from own team scores
 		*score_enemy += 1; //attacker team gets +1
+		*attackerScore += 1; //add score for killer. used to decide next boss
 	}
 
 	UpdateScore();
@@ -122,9 +134,10 @@ edict_t *Killapin_GetTeamBoss(int team)
 	return NULL;
 }
 
-static edict_t *Killapin_FindTeamPlayerRand(int team)
+static edict_t *Killapin_FindTeamPlayerRand(int team, qboolean checkPrevBoss)
 {
 	int i, playerID;
+	int bossOnce = (int)bossonce->value;
 	int maxPlayers = (int)maxclients->value;
 	edict_t *player;
 
@@ -142,8 +155,16 @@ static edict_t *Killapin_FindTeamPlayerRand(int team)
 		if (++playerID > maxPlayers)
 			playerID = 1;
 		player = g_edicts + playerID;
+
+		//ignore previous boss
+		if (checkPrevBoss && bossOnce && player->client->resp.hasBeenBoss)
+			continue;
+
 		if (player->inuse && player->client->pers.team == team)
+		{
+			player->client->resp.hasBeenBoss = 1;
 			return player;
+		}
 	}
 
 	//invalid
@@ -152,9 +173,9 @@ static edict_t *Killapin_FindTeamPlayerRand(int team)
 
 static edict_t *Killapin_FindTeamPlayerBest(int team)
 {
-	int i, n, most_kills=0, old_boss =0, bestIsBoss = 0;
-	int kills = -99999, deaths = 999999, time = 0;
-	edict_t *player;
+	int i, bestIsBoss = 0;
+	int kills = -99999, points = -999999, time = 0;
+	edict_t *player, *old_boss = NULL, *most_kills = NULL;
 	gclient_t *cl;
 
 	for_each_player(player, i)
@@ -165,22 +186,22 @@ static edict_t *Killapin_FindTeamPlayerBest(int team)
 		if (cl->pers.team == team)
 		{
 			//respawn same boss. alive for more then x seconds
-			if (cl->resp.boss_time > BOSS_ALIVE_TIME_TOTAL)
+			if (cl->resp.boss_time > (int)bosstimetotal->value)
 			{
-				old_boss = i;
+				old_boss = player;
 				cl->resp.boss_time = 0;
 				break;
 			}
 
-			//simple select best player
-			if (cl->resp.score > kills ||
-				(cl->resp.score == kills && !bestIsBoss && cl->resp.deposited < deaths)) //compare deaths if not boss
+			//simple select best player, usng hit points.
+			if (cl->resp.deposited > points ||
+				(cl->resp.deposited == points && !bestIsBoss && cl->resp.score > kills)) //compare deaths if not boss
 			{
 				//highest kills/lowest deaths
 				kills = cl->resp.score;
-				deaths = cl->resp.deposited;
+				points = cl->resp.deposited;
 				time = cl->resp.deposited; //todo
-				most_kills = i;
+				most_kills = player;
 
 				//prevent minion with same kills becomming boss
 				bestIsBoss = (cl->resp.boss_time) ? 1: 0; 
@@ -192,9 +213,15 @@ static edict_t *Killapin_FindTeamPlayerBest(int team)
 
 	//found best player
 	if (old_boss)
-		return g_edicts + old_boss;
+	{
+		old_boss->client->resp.hasBeenBoss = 1;
+		return old_boss;
+	}
 	else if (most_kills)
-		return g_edicts + most_kills;
+	{
+		most_kills->client->resp.hasBeenBoss = 1;
+		return most_kills;
+	}
 
 	//invalid
 	return NULL;
@@ -206,15 +233,22 @@ edict_t *Killapin_NewTeamBoss(int team)
 	if (!level.next_spawn[team - 1] || !bossbest->value)
 	{
 		//random pick a new boss.
-		return Killapin_FindTeamPlayerRand(team);
+		return Killapin_FindTeamPlayerRand(team, FALSE);
 	}
 	else 
 	{
+		edict_t * boss = Killapin_FindTeamPlayerRand(team, TRUE);
+
+		//let every player be boss once
+		if (boss) //cvar?
+			return boss;
+
 		//pick next/best player as boss
 		return Killapin_FindTeamPlayerBest(team);	
 	}
 }
 
+void CopyToBodyQue(edict_t *ent);
 void Killapin_KillTeam(int team)
 {
 	int i;
@@ -419,7 +453,7 @@ int HUD_AppendMessage(char *baseStr, char *addStr, int *stringlength, int maxLen
 void Killapin_Build_RadarMessage(edict_t *ent, char *string, int *stringlength, int maxLen)
 {
 	char     entry[1024], *color;
-	float    mag, vecLen;
+	float    vecLen;
 	int      i, newX, newY, len, count = 0;
 	edict_t *src;
 	vec3_t   vFlat;
@@ -619,7 +653,7 @@ static void Killapin_UpdateCounters()
 {
 	if (level.framenum % 10 == 0)
 	{
-		int i;
+		int i, aliveTime = (int)bosstimebonus->value;
 		edict_t *player;
 
 		for_each_player(player, i)
@@ -631,7 +665,7 @@ static void Killapin_UpdateCounters()
 					player->client->resp.boss_time += 1; //add 1 second to boss
 
 					//give score to boss that lives past 15 seconds
-					if (player->client->resp.boss_time % BOSS_ALIVE_TIME_BONUS == 0)
+					if (player->client->resp.boss_time % aliveTime == 0)
 						team_cash[player->client->pers.team] += BOSS_ALIVE_BONUS_POINTS;
 				}
 			}
@@ -711,6 +745,10 @@ static void Killapin_CheckValidTeams()
 					player->client->resp.acchit = 0;
 					player->client->resp.accshot = 0;
 					player->client->resp.score = 0;
+					player->client->resp.deposited = 0;
+					player->client->pers.currentcash = 0;
+					player->client->pers.bagcash = 0;
+					player->client->resp.time = 0;
 					if (player->health > 0) //alive
 						player->health = player->client->pers.max_health; 
 				}
@@ -757,8 +795,15 @@ void Killapin_RunFrame()
 
 void Killapin_Init()
 {
-	bosshp = gi.cvar( "bosshp", "250", 0); //default spawn health
+	bosshp = gi.cvar( "bosshp", va("%d", BOSS_START_HP), 0); //default spawn health. 250
 	bossbest = gi.cvar( "bossbest", "1", 0); //best player as boss (0=random selected boss)
+	bossonce = gi.cvar( "bossonce", "1", 0); //let each player become boss once. used with 'bossbest'
 	bossonly = gi.cvar( "bossonly", "1", 0); //only consider a boss for spawpoint(0= considered minions to)
 	showspawns = gi.cvar( "showspawns", "0", 0); //show dm locations
+
+
+	//if boss dies after this time, they get to respawn as boss
+	bosstimetotal = gi.cvar( "bosstimetotal", va("%d", BOSS_ALIVE_TIME_TOTAL), 0); //defaul 45
+	//time in seconds if the boss is live and will recieve points.
+	bosstimebonus = gi.cvar( "bosstimebonus", va("%d", BOSS_ALIVE_TIME_BONUS), 0); //default 15
 }

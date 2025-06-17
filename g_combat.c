@@ -711,7 +711,7 @@ void T_Damage (edict_t *targ, edict_t *inflictor, edict_t *attacker, vec3_t dir,
 		if (mod == MOD_FLAMETHROWER)
 		{
 		}
-		else if (mod == MOD_CROWBAR)
+		else if (mod == MOD_CROWBAR && client)
 		{
 			//killapin boss using knife
 			//SpawnDamage (targ, TE_GIBS, sparkspoint, normal, take);

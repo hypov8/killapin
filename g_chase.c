@@ -8,7 +8,6 @@ void UpdateChaseCam(edict_t *ent)
 	edict_t *targ;
 	vec3_t forward, up;
 	trace_t trace;
-	int i;
 	vec3_t angles;
 
 	if (!ent->client->prechase_ps.fov)

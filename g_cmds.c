@@ -380,7 +380,6 @@ void Cmd_Key_f (edict_t *ent, int who)
 			}
 			else
 			{
-random:
 				n = rand() % num_entries;
 			}
 			Voice_Specific(ent, key_ent, voice_table, n);

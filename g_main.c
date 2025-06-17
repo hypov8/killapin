@@ -367,9 +367,6 @@ CheckDMRules
 */
 void CheckDMRules (void)
 {
-	int			i;
-	gclient_t	*cl;
-
 	if (level.intermissiontime)
 		return;
 

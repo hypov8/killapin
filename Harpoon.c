@@ -386,7 +386,7 @@ void Harpoon_Draw_Cable(edict_t *self)
 	if ((int)harpoon_cable->value != 0)
 	{
 		// MH: send multiple times to solidify the beam since called only once per frame now (in ClientBeginServerFrame instead of ClientThink)
-		int i;
+		//int i;
 
 		//G_SetMovedir (self->owner->s.angles, self->movedir);
 

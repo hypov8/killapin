@@ -303,7 +303,7 @@ void InitGame (void)
 	gi.cvar_set("sv_enforcetime", "1");
 
 	teamplay = gi.cvar("teamplay", "4", CVAR_LATCH|CVAR_SERVERINFO);
-	gi.cvar_set("teamplay", "4");
+	gi.cvar_set("teamplay", "4"); //killapin force teamplay 4
 
 	g_cashspawndelay = gi.cvar("g_cashspawndelay", "5", CVAR_ARCHIVE|CVAR_LATCH);
 

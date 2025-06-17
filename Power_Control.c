@@ -59,9 +59,9 @@ void Power_Overlay_Generate(void)
 
 void Power_Control_Overlay_Generate(edict_t* ent)
 {//This is now generated directly by the control when something changes
-	long Counter;
+	//long Counter;
 	int Y_Coordinate;
-	int Time;
+	//int Time;
 
 	char* Model_Target;
 	char* Colour_Target;
@@ -154,6 +154,7 @@ void Power_Control_Overlay_Generate(edict_t* ent)
 	*/
 }
 
+void GetChaseMessage(edict_t *ent, char *entry);
 void Power_Overlay_Display(edict_t* ent)
 {
 	char Holder[1024];
@@ -164,7 +165,8 @@ void Power_Overlay_Display(edict_t* ent)
 	//Add in the spectator display if required
 	if (ent->client->pers.spectator == SPECTATING && (level.modeset == PUBLIC || level.modeset == MATCH))
 	{
-		Chase_Length = GetChaseMessage(ent, Holder);
+		GetChaseMessage(ent, Holder);
+		Chase_Length = strlen(Holder);
 		if ((Power_Game.Overlay_Length + Chase_Length) < 1024)
 		{
 			sprintf(Final, "%s%s", Power_Game.Overlay, Holder);
