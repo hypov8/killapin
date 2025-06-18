@@ -123,10 +123,11 @@ void ClientObituary (edict_t *self, edict_t *inflictor, edict_t *attacker)
 		message = NULL;
 		message2 = "";
 
+#if 0 //killapin disabled
 		// in deathmatch, track deaths
 		if (mod != MOD_TELEFRAG && (int)teamplay->value != 1)
 			self->client->resp.deposited++;
-
+#endif
 //CDEATH
 		Harpoon_Player_Reset(self);
 //END CDEATH

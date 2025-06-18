@@ -162,14 +162,17 @@ static edict_t *Killapin_FindTeamPlayerRand(int team, qboolean checkPrevBoss)
 		//conditional rand boss
 		if (checkPrevBoss)
 		{
-			//ignore previous boss
-			if (bossOnce && player->client->resp.hasBeenBoss)
-				continue;
-
 			//non BoB mode
 			if (level.invincible_boss < level.framenum)
 			{
-				continue; //skip all players
+				//ignore previous boss
+				if (bossOnce)
+				{
+					if (player->client->resp.hasBeenBoss)
+						continue; //skip player
+				}
+				else
+					continue; //skip all players
 			}
 			else //BoB mode. this lets a rand player be chosen if a boss dies in BoB mode
 			{
