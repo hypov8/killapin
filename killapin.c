@@ -156,15 +156,33 @@ static edict_t *Killapin_FindTeamPlayerRand(int team, qboolean checkPrevBoss)
 			playerID = 1;
 		player = g_edicts + playerID;
 
-		//ignore previous boss
-		if (checkPrevBoss && bossOnce && player->client->resp.hasBeenBoss)
+		if (!player->inuse || player->client->pers.team != team)
 			continue;
 
-		if (player->inuse && player->client->pers.team == team)
+		//conditional rand boss
+		if (checkPrevBoss)
 		{
-			player->client->resp.hasBeenBoss = 1;
-			return player;
+			//ignore previous boss
+			if (bossOnce && player->client->resp.hasBeenBoss)
+				continue;
+
+			//non BoB mode
+			if (level.invincible_boss < level.framenum)
+			{
+				continue; //skip all players
+			}
+			else //BoB mode. this lets a rand player be chosen if a boss dies in BoB mode
+			{
+				//dont pic prev boss
+				if (player->client->resp.boss_time)
+					continue;
+			}
 		}
+
+		//valid next player
+		player->client->resp.hasBeenBoss = 1;
+		player->client->resp.boss_time = 0;
+		return player;
 	}
 
 	//invalid
@@ -656,6 +674,10 @@ static void Killapin_UpdateCounters()
 		int i, aliveTime = (int)bosstimebonus->value;
 		edict_t *player;
 
+		//BoB mode. dont add time/bonus
+		if (level.invincible_boss > level.framenum)
+			return;
+
 		for_each_player(player, i)
 		{
 			if (player->client->pers.spectator == PLAYING)
@@ -749,6 +771,7 @@ static void Killapin_CheckValidTeams()
 					player->client->pers.currentcash = 0;
 					player->client->pers.bagcash = 0;
 					player->client->resp.time = 0;
+					player->client->resp.boss_time = 0;
 					if (player->health > 0) //alive
 						player->health = player->client->pers.max_health; 
 				}
