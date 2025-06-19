@@ -25,6 +25,13 @@ cvar_t	*bosstimebonus;
 #define BOSS_ALIVE_BONUS_POINTS  1 //score to add if alive	 
 #define BOSS_START_HP          250 //BOSS START hp
 
+#define CHAT_COLOR_RED    (1 << 2) //RED
+#define CHAT_COLOR_GREEN  (2 << 2) //GREEN
+#define CHAT_COLOR_YELLOW (3 << 2)
+#define CHAT_COLOR_PURPLE (4 << 2)
+#define CHAT_COLOR_PINK   (5 << 2)
+#define CHAT_COLOR_AQUA   (6 << 2)
+
 
 
 void SP_info_player_show(edict_t *self, int skin)
@@ -78,6 +85,30 @@ void Killapin_Add_NoDamageProtection(edict_t *attacker, edict_t *target, int *df
 	}
 }
 
+static qboolean Killapin_IsBoBMode_Active()
+{
+	//Bob Timer active
+	if (level.invincible_boss > level.framenum)
+	{
+		//check if countdown has ended
+		if ((level.framenum + BOSS_TIME_TOTAL) > level.invincible_boss) 
+			return true;
+	}
+
+	return false;
+}
+
+void Killapin_sendChatMsg(edict_t *player, char *msg, int color)
+{
+	int chatColor = PRINT_CHAT;
+
+	//patched. add color
+	if (player->client->pers.patched >= 7)
+		chatColor |= color;
+
+	gi.cprintf(player, chatColor, "%s\n", msg);
+}
+
 void Killapin_SetTeamScore_PlayerDied(edict_t *self, edict_t *attacker)
 {
 	int *score_deadPlyr = &team_cash[self->client->pers.team];
@@ -92,15 +123,17 @@ void Killapin_SetTeamScore_PlayerDied(edict_t *self, edict_t *attacker)
 		if (atackerIsBoss)
 		{
 			//boss died while BoB mode enabled
-			if (level.invincible_boss > level.framenum)
+			if (Killapin_IsBoBMode_Active())
 			{
 				*score_enemy += 25; //attacker team gets +25?
+				Killapin_sendChatMsg(attacker, "Killing a Boss scored your team 25 points!", CHAT_COLOR_GREEN);
 				*attackerScore += 25; //add score for killer. used to decide next boss
 			}
 			else
 			{
 				//boss died in normal mode
 				*score_deadPlyr -= 10; //subtract from own team scores
+				Killapin_sendChatMsg(self, "Dying cost your team 10 points!", CHAT_COLOR_RED);
 				*attackerScore += 15; //add score for killer. used to decide next boss
 			}
 		}
@@ -153,7 +186,7 @@ static edict_t *Killapin_FindTeamPlayerRand(int team, qboolean checkPrevBoss)
 	for (i = 0; i < maxPlayers; i++)
 	{
 		if (++playerID > maxPlayers)
-			playerID = 1;
+			playerID = 1; //loop back to start of player list
 		player = g_edicts + playerID;
 
 		if (!player->inuse || player->client->pers.team != team)
@@ -162,8 +195,14 @@ static edict_t *Killapin_FindTeamPlayerRand(int team, qboolean checkPrevBoss)
 		//conditional rand boss
 		if (checkPrevBoss)
 		{
-			//non BoB mode
-			if (level.invincible_boss < level.framenum)
+			//BoB mode. this lets a rand player be chosen if a boss dies in BoB mode
+			if (Killapin_IsBoBMode_Active())
+			{
+				//dont pic prev boss
+				if (player->client->resp.boss_time)
+					continue;
+			}
+			else //non BoB mode
 			{
 				//ignore previous boss
 				if (bossOnce)
@@ -174,16 +213,9 @@ static edict_t *Killapin_FindTeamPlayerRand(int team, qboolean checkPrevBoss)
 				else
 					continue; //skip all players
 			}
-			else //BoB mode. this lets a rand player be chosen if a boss dies in BoB mode
-			{
-				//dont pic prev boss
-				if (player->client->resp.boss_time)
-					continue;
-			}
 		}
 
 		//valid next player
-		player->client->resp.hasBeenBoss = 1;
 		player->client->resp.boss_time = 0;
 		return player;
 	}
@@ -234,15 +266,10 @@ static edict_t *Killapin_FindTeamPlayerBest(int team)
 
 	//found best player
 	if (old_boss)
-	{
-		old_boss->client->resp.hasBeenBoss = 1;
 		return old_boss;
-	}
+
 	else if (most_kills)
-	{
-		most_kills->client->resp.hasBeenBoss = 1;
 		return most_kills;
-	}
 
 	//invalid
 	return NULL;
@@ -260,7 +287,7 @@ edict_t *Killapin_NewTeamBoss(int team)
 	{
 		edict_t * boss = Killapin_FindTeamPlayerRand(team, TRUE);
 
-		//let every player be boss once
+		//let every player be boss once. or BoB mode and not the prev boss.
 		if (boss) //cvar?
 			return boss;
 
@@ -317,8 +344,9 @@ void Killapin_ShowShellColors(edict_t *self)
 	if (self->client->resp.is_boss)
 	{
 		//BoB mode
-		if (level.invincible_boss > level.framenum 
-			&& (level.invincible_boss -BOSS_TIME_TOTAL) < level.framenum)
+		//if (level.invincible_boss > level.framenum 
+		///	&& (level.invincible_boss -BOSS_TIME_TOTAL) < level.framenum)
+		if (Killapin_IsBoBMode_Active())
 		{	
 			self->s.effects |= EF_COLOR_SHELL;
 			switch (self->client->pers.team)
@@ -350,7 +378,7 @@ void Killapin_ShowShellColors(edict_t *self)
 //this is run every server frame (10 fps)
 void Killapin_GiveItems(edict_t *ent, gclient_t *client)
 {
-	int isBoB_Mode = (level.invincible_boss > level.framenum)? 1:0;
+	int isBoB_Mode = Killapin_IsBoBMode_Active();
 	int delay = 20; //delay before player recieves health/items
 	int isBoss = client->resp.is_boss? 1 : 0;
 	int isAttacking = (ent->client->buttons & BUTTON_ATTACK); //(client->weaponstate == WEAPON_FIRING)
@@ -575,6 +603,8 @@ void Killapin_Build_RadarMessage(edict_t *ent, char *string, int *stringlength, 
 
 static void Killapin_CheckBoB_Mode()
 {
+	int i;
+	edict_t *player;
 	// enable invincible boss mode. rand
 	if (level.framenum - level.invincible_boss >= 1200 && !(rand() & 127))
 	{	
@@ -583,6 +613,10 @@ static void Killapin_CheckBoB_Mode()
 		gi.WriteByte(svc_stufftext);
 		gi.WriteString("play killapin/bstart\n");
 		gi.multicast(vec3_origin, MULTICAST_ALL);
+		for_each_player(player, i)
+		{
+			Killapin_sendChatMsg(player, "Boss timer is starting!", CHAT_COLOR_GREEN);
+		}
 	}
 
 	//end boss mode
@@ -591,20 +625,29 @@ static void Killapin_CheckBoB_Mode()
 		gi.WriteByte(svc_stufftext);
 		gi.WriteString("play killapin/bend\n");
 		gi.multicast(vec3_origin, MULTICAST_ALL);
+		for_each_player(player, i)
+		{
+			Killapin_sendChatMsg(player, "Boss timer ended!", CHAT_COLOR_RED);
+		}
 	}
 
 	//begin BoB mode. countdown warning finished
-	if ((level.framenum == level.invincible_boss - BOSS_TIME_TOTAL))
+	if (level.framenum == (level.invincible_boss - BOSS_TIME_TOTAL))
 	{
-		int i;
-		edict_t *player;
-
 		for_each_player (player, i)
 		{
 			strcpy(player->client->resp.message, "BOSS TIME HAS STARTED!");
 			player->client->resp.message_frame = level.framenum + 30;
 			if (!player->client->showscores)
 				player->client->resp.scoreboard_frame = 0;
+			
+			//reset boss time
+			if (player->client->resp.is_boss)
+				player->client->resp.boss_time = 1; //prevents respawning as boss again
+			else
+				player->client->resp.boss_time = 0;
+
+			Killapin_sendChatMsg(player, "Boss immunity!", CHAT_COLOR_GREEN);
 		}
 	}
 }
@@ -629,9 +672,9 @@ int Killapin_AdjustSpawnpoint(gclient_t *client, float *playerDistance)
 		// give greater priority to distance from other bosses
 		*playerDistance *= 0.16; //make boss seem closer
 	}
-	else if (bossonly->value)
+	else if (bossonly->value /* && !client->resp.is_boss */)	//not boss
 	{
-		//skip player in range checking
+		//skip minions in range checking
 		return 0;
 	}
 
@@ -653,7 +696,10 @@ static void Killapin_SpawnPlayers()
 			{
 				boss = Killapin_NewTeamBoss(team);
 				if (boss)
+				{
+					boss->client->resp.hasBeenBoss = 1; //mark boss
 					respawn(boss);
+				}
 				continue;
 			}
 			for_each_player (player, i)
