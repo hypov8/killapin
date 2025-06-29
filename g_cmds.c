@@ -1999,7 +1999,7 @@ void Cmd_CommandList_f (edict_t *ent)
 	{
 		if (teamplay->value)
 			strcat(buf, ", matchsetup, matchscore, matchstart, matchend, setteams, team1name, team2name, team3name");
-		strcat(buf, ", resetserver, settimelimit, setfraglimit, setdmflags, setidletime, toggle_asc, toggle_bunny, toggle_shadows, toggle_zoom");
+		strcat(buf, ", resetserver, resetround, settimelimit, setfraglimit, setdmflags, setidletime, toggle_asc, toggle_bunny, toggle_shadows, toggle_zoom");
 //CDEATH
 		strcat(buf, ", setharpoonspeedfly, setharpoonspeedpull, setharpoondamage");
 //END CDEATH
@@ -2013,7 +2013,7 @@ void Cmd_CommandList_f (edict_t *ent)
 			strcat(buf, ", setdm_realmode");
 	}
 	else if (ent->client->pers.rconx[0])
-		strcat(buf, ", resetserver, clientlist, mute");
+		strcat(buf, ", resetserver, resetround, clientlist, mute");
 	gi.cprintf(ent, PRINT_HIGH, "%s\n", buf);
 }
 
@@ -2463,6 +2463,15 @@ void Cmd_ResetServer_f (edict_t *ent)
 {
 	if (ent->client->pers.admin > NOT_ADMIN || ent->client->pers.rconx[0]) 
 		ResetServer(false);
+	else
+		gi.cprintf(ent, PRINT_HIGH, "You do not have permission\n");
+}
+
+//killapin
+void Cmd_ResetRound_f (edict_t *ent)
+{
+	if (ent->client->pers.admin > NOT_ADMIN || ent->client->pers.rconx[0]) 
+		Killapin_ResetRound();
 	else
 		gi.cprintf(ent, PRINT_HIGH, "You do not have permission\n");
 }
@@ -3425,6 +3434,10 @@ void ClientCommand (edict_t *ent)
 
 	else if (Q_stricmp (cmd, "resetserver") == 0)
 		Cmd_ResetServer_f(ent);
+	//killapin
+	else if (Q_stricmp (cmd, "resetround") == 0)
+		Cmd_ResetRound_f(ent);
+	//end
 
 	else if (Q_stricmp (cmd, "settimelimit") == 0)
 		Cmd_SetTimeLimit_f (ent, gi.argv (1));

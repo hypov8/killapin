@@ -1159,6 +1159,7 @@ void ChaseStop(edict_t *ent);
 void PublicSetup ();
 void MatchSetup ();
 void MatchStart();
+void Start_Pub (); //used in killapin
 void Start_Match ();
 void SetupMapVote ();
 void CheckStartPub();
@@ -1219,6 +1220,7 @@ void     Killapin_SetBossMaxHealth(gclient_t *boss);
 void     Killapin_Init();
 int      Killapin_AdjustSpawnpoint(gclient_t *client, float *playerDistance);
 void     SP_info_player_show(edict_t *self, int skin);
+void     Killapin_ResetRound();
 
 //
 // Harpoon.c

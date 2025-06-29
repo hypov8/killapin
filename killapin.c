@@ -54,6 +54,32 @@ void SP_info_player_show(edict_t *self, int skin)
 	gi.linkentity (self);
 }
 
+void Killapin_ResetRound()
+{
+	int i;
+	edict_t *player;
+
+	Start_Pub(); //local to tourney
+
+	team_cash[1] = 0; //reset team scores
+	team_cash[2] = 0;
+	team_cash[3] = 0;
+	//reset player scores
+	for_each_player(player, i)
+	{
+		player->client->resp.acchit = 0;
+		player->client->resp.accshot = 0;
+		player->client->resp.score = 0;
+		player->client->resp.deposited = 0;
+		player->client->pers.currentcash = 0;
+		player->client->pers.bagcash = 0;
+		player->client->resp.time = 0;
+		player->client->resp.boss_time = 0;
+		if (player->health > 0) //alive
+			player->health = player->client->pers.max_health; 
+	}
+}
+
 //respawn health
 void Killapin_SetBossMaxHealth(gclient_t *boss)
 {
@@ -248,7 +274,7 @@ static edict_t *Killapin_FindTeamPlayerBest(int team)
 
 			//simple select best player, usng hit points.
 			if (cl->resp.deposited > points ||
-				(cl->resp.deposited == points && !bestIsBoss && cl->resp.score > kills)) //compare deaths if not boss
+				(cl->resp.deposited == points && !bestIsBoss && cl->resp.score > kills)) //compare kills if not boss
 			{
 				//highest kills/lowest deaths
 				kills = cl->resp.score;
@@ -751,16 +777,16 @@ restart game when first detected
 static void Killapin_CheckValidTeams()
 {
 	int i;
-	static int hasRespawned = 0;
+	static int validTeamCount = 0;
 	static int restartFrame = 0;
 
 	//count player while spawning
 	if (level.modeset == PUBLIC || level.modeset == MATCH)
 	{
-		if (!hasRespawned)
+		if (validTeamCount >= 0 && validTeamCount < (int)teams->value) //check for max teams
 		{
 			int teamCounts[4] = {0, 0, 0, 0}; 
-			int ready[3] = {0, 0, 0};
+			int ready[3] = {0, 0, 0}, readyCount;
 			edict_t *player;
 
 			for_each_player(player, i)
@@ -768,21 +794,25 @@ static void Killapin_CheckValidTeams()
 				if (player->client->resp.is_boss)
 					teamCounts[player->client->pers.team] |= 1; //is boss
 				else
+				{
 					teamCounts[player->client->pers.team] |= 2; //is minion
+					//todo count+cvar
+				}
 			}
 			ready[0] = (teamCounts[1] & 3) == 3; //team1 has boss+minion?
 			ready[1] = (teamCounts[2] & 3) == 3; //team2 has boss+minion?
 			ready[2] = (teamCounts[3] & 3) == 3; //team3 has boss+minion?
+			readyCount = ready[0] + ready[1] + ready[2];
 
-			if ((ready[0] + ready[1]+ ready[2]) >=2)  //atleast 2 teams valid (2+ players)
+			if (readyCount > validTeamCount)  //atleast 2 teams valid (2+ players)
 			{
 				if (level.framenum < level.startframe + 30)
 				{
-					hasRespawned = 1;
+					validTeamCount = readyCount;
 					return; //fresh game, with players. dont do anything
 				}
 				//restart round
-				hasRespawned = -1;
+				validTeamCount = -readyCount;
 
 				//countdown. 4 seconds
 				restartFrame = level.framenum + 41;
@@ -796,43 +826,20 @@ static void Killapin_CheckValidTeams()
 				gi.multicast(vec3_origin, MULTICAST_ALL);
 			}
 		}
-		else if (hasRespawned == -1)
+		else if (validTeamCount < 0)
 		{
 			//countdown hit?
 			if (level.framenum > restartFrame)
 			{
-				int i;
-				edict_t *player;
-
-				//Start_Pub(); //local to tourney
-				CheckStartPub(); //this works anyway
-
-				team_cash[1] = 0; //reset team scores
-				team_cash[2] = 0;
-				team_cash[3] = 0;
-				//reset player scores
-				for_each_player(player, i)
-				{
-					player->client->resp.acchit = 0;
-					player->client->resp.accshot = 0;
-					player->client->resp.score = 0;
-					player->client->resp.deposited = 0;
-					player->client->pers.currentcash = 0;
-					player->client->pers.bagcash = 0;
-					player->client->resp.time = 0;
-					player->client->resp.boss_time = 0;
-					if (player->health > 0) //alive
-						player->health = player->client->pers.max_health; 
-				}
-
-				hasRespawned = 1; //disable untill map change
+				Killapin_ResetRound();
+				validTeamCount = abs(validTeamCount); //disable untill map change or more teams fill up
 			}
 		}
 	}
 	else
 	{
 		//reset game
-		hasRespawned = 0;
+		validTeamCount = 0;
 		restartFrame = 0;
 	}
 }
@@ -869,7 +876,7 @@ void Killapin_Init()
 {
 	bosshp = gi.cvar( "bosshp", va("%d", BOSS_START_HP), 0); //default spawn health. 250
 	bossbest = gi.cvar( "bossbest", "1", 0); //best player as boss (0=random selected boss)
-	bossonce = gi.cvar( "bossonce", "1", 0); //let each player become boss once. used with 'bossbest'
+	bossonce = gi.cvar( "bossonce", "1", 0); //let each player become boss once. used with 'bossbest=1'
 	bossonly = gi.cvar( "bossonly", "1", 0); //only consider a boss for spawpoint(0= considered minions to)
 	showspawns = gi.cvar( "showspawns", "0", 0); //show dm locations
 
