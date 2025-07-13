@@ -1999,7 +1999,7 @@ void Cmd_CommandList_f (edict_t *ent)
 	{
 		if (teamplay->value)
 			strcat(buf, ", matchsetup, matchscore, matchstart, matchend, setteams, team1name, team2name, team3name");
-		strcat(buf, ", resetserver, resetround, settimelimit, setfraglimit, setdmflags, setidletime, toggle_asc, toggle_bunny, toggle_shadows, toggle_zoom");
+		strcat(buf, ", resetserver, resetround, settimelimit, setfraglimit, setdmflags, setidletime, setbossidletime, toggle_asc, toggle_bunny, toggle_shadows, toggle_zoom");
 //CDEATH
 		strcat(buf, ", setharpoonspeedfly, setharpoonspeedpull, setharpoondamage");
 //END CDEATH
@@ -2388,6 +2388,24 @@ void Cmd_SetClientIdle_f (edict_t *ent, char *value)
 	else
 		gi.cprintf(ent, PRINT_HIGH, "You do not have admin\n");
 }
+
+void Cmd_SetBossIdle_f (edict_t *ent, char *value)
+{
+	if (ent->client->pers.admin > NOT_ADMIN)
+	{
+		int		i = atoi (value);
+		if (i < 20)
+		{
+			gi.cprintf(ent, PRINT_HIGH, "Please choose a boss idle time of at least 20\n");
+			return;
+		}
+		gi.cvar_set("idle_boss", value);
+		gi.bprintf(PRINT_HIGH, "The boss idle time has been set to %d seconds\n", i);
+	}
+	else
+		gi.cprintf(ent, PRINT_HIGH, "You do not have admin\n");
+}
+
 
 void Cmd_SetFragLimit_f (edict_t *ent, char *value)
 {
@@ -3445,6 +3463,11 @@ void ClientCommand (edict_t *ent)
 		Cmd_SetClientIdle_f (ent, gi.argv (1));
 	else if (Q_stricmp (cmd, "setfraglimit") == 0)
 		Cmd_SetFragLimit_f (ent, gi.argv (1));
+
+//killapin
+	else if (Q_stricmp (cmd, "setbossidletime") == 0)
+		Cmd_SetBossIdle_f(ent, gi.argv (1));
+//end killapin
 
 //CDEATH
 	else if (Q_stricmp(cmd, "setharpoonspeedfly") == 0)

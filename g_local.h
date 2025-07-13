@@ -43,6 +43,7 @@
 #define PUBLIC				2
 #define ENDGAME				3
 #define ENDGAMEVOTE			4
+//match. must be last
 #define MATCHSETUP			5
 #define MATCHCOUNT			6
 #define MATCHSPAWN			7
@@ -754,7 +755,8 @@ extern	cvar_t	*flood_waitdelay;
 
 extern	cvar_t	*kick_flamehack;
 extern	cvar_t	*anti_spawncamp;
-extern  cvar_t  *idle_client;
+extern  cvar_t	*idle_client;
+extern  cvar_t	*idle_boss; //killapin
 
 // Ridah, new cvar's
 extern	cvar_t	*developer;
@@ -1220,7 +1222,8 @@ void     Killapin_SetBossMaxHealth(gclient_t *boss);
 void     Killapin_Init();
 int      Killapin_AdjustSpawnpoint(gclient_t *client, float *playerDistance);
 void     SP_info_player_show(edict_t *self, int skin);
-void     Killapin_ResetRound();
+void     Killapin_ResetRound(); //"resetround"
+void     Killapin_ResetPlayer(edict_t *ent);
 
 //
 // Harpoon.c
@@ -1330,6 +1333,7 @@ typedef struct
 	int			is_boss; //killapin
 	int			hasBeenBoss; //killapin. let each player be boss once
 	int			boss_time; //killapin. store time as boss in seconds
+	int			wep_level; //killapin. upgraded weapon state
 
 	int			accshot, acchit, fav[9];
 	int			time;

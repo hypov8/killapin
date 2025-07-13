@@ -54,27 +54,54 @@ void SP_info_player_show(edict_t *self, int skin)
 	gi.linkentity (self);
 }
 
+//also used for match setup
+void Killapin_ResetPlayer(edict_t *ent)
+{
+	//reset player scores
+	ent->client->resp.time = 0;
+	ent->client->resp.scoreboard_frame = 0;
+	ent->client->pers.bagcash = 0;
+	ent->client->resp.deposited = 0;
+	ent->client->resp.score = 0;
+	ent->client->pers.currentcash = 0;
+	ent->client->resp.acchit = 0;
+	ent->client->resp.accshot = 0;
+
+	memset(ent->client->resp.fav, 0, sizeof(ent->client->resp.fav));
+	if (ent->client->pers.spectator == PLAYING)
+		ent->client->showscores = NO_SCOREBOARD;
+
+	//killapin specific
+	ent->client->resp.boss_time = 0;
+	ent->client->resp.wep_level = 0; //reset weapons. todo
+	ent->client->resp.hasBeenBoss = 0;
+}
+
 void Killapin_ResetRound()
 {
 	int i;
 	edict_t *player;
 
-	Start_Pub(); //local to tourney
+	if (level.modeset >= MATCHSETUP)
+	{
+		MatchStart();
+		return;
+	}
+
+	Start_Pub(); //local to tourney.c
 
 	team_cash[1] = 0; //reset team scores
 	team_cash[2] = 0;
 	team_cash[3] = 0;
+	UpdateScore();
+
+	G_ClearUp ();
+
 	//reset player scores
 	for_each_player(player, i)
 	{
-		player->client->resp.acchit = 0;
-		player->client->resp.accshot = 0;
-		player->client->resp.score = 0;
-		player->client->resp.deposited = 0;
-		player->client->pers.currentcash = 0;
-		player->client->pers.bagcash = 0;
-		player->client->resp.time = 0;
-		player->client->resp.boss_time = 0;
+		Killapin_ResetPlayer(player);
+
 		if (player->health > 0) //alive
 			player->health = player->client->pers.max_health; 
 	}
@@ -874,11 +901,13 @@ void Killapin_RunFrame()
 
 void Killapin_Init()
 {
+	//new admin command "resetround". resets game/player stats
+
 	bosshp = gi.cvar( "bosshp", va("%d", BOSS_START_HP), 0); //default spawn health. 250
 	bossbest = gi.cvar( "bossbest", "1", 0); //best player as boss (0=random selected boss)
 	bossonce = gi.cvar( "bossonce", "1", 0); //let each player become boss once. used with 'bossbest=1'
 	bossonly = gi.cvar( "bossonly", "1", 0); //only consider a boss for spawpoint(0= considered minions to)
-	showspawns = gi.cvar( "showspawns", "0", 0); //show dm locations
+	showspawns = gi.cvar( "showspawns", "0", 0); //show dm spawn locations
 
 
 	//if boss dies after this time, they get to respawn as boss

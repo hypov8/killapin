@@ -168,16 +168,8 @@ void MatchStart()
 
 	for_each_player (ent, i)
 	{
-		ent->client->resp.time = 0;
-		ent->client->resp.scoreboard_frame = 0;
-		ent->client->pers.bagcash = 0;
-		ent->client->resp.deposited = 0;
-		ent->client->resp.score = 0;
-		ent->client->pers.currentcash = 0;
-		ent->client->resp.acchit = ent->client->resp.accshot = 0;
-		memset(ent->client->resp.fav, 0, sizeof(ent->client->resp.fav));
-		if (ent->client->pers.spectator == PLAYING)
-			ent->client->showscores = NO_SCOREBOARD;
+		Killapin_ResetPlayer(ent); //killapin
+
 		ClientBeginDeathmatch( ent );
 	}
 
@@ -199,6 +191,10 @@ void Start_Match ()
 {
 	edict_t		*self;
 	int			i;
+
+	//CDEATH
+	Power_Initialise_Level();
+	//END CDEATH
 
 	level.modeset = MATCH;
 	level.startframe = level.framenum;

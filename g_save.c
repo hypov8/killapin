@@ -287,6 +287,7 @@ void InitGame (void)
 	kick_flamehack = gi.cvar ("kick_flamehack", "1", CVAR_SERVERINFO);
 	anti_spawncamp = gi.cvar ("anti_spawncamp", "1", 0);
 	idle_client = gi.cvar("idle_client", "30", 0);
+	idle_boss = gi.cvar("idle_boss", "20", 0); //killapin
 
 // Ridah, new cvar's
 	developer = gi.cvar ("developer", "0", 0);

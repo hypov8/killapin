@@ -255,7 +255,7 @@ void ClientObituary (edict_t *self, edict_t *inflictor, edict_t *attacker)
 				message = "was mashed by";
 				break;
 			case MOD_CROWBAR:
-				message = "was severely dented by";
+				message = "was slashed by"; //killapin
 				break;
 			case MOD_PISTOL:
 				message = "was busted by";
@@ -2717,6 +2717,14 @@ void ClientBeginServerFrame (edict_t *ent)
 			// make them a spectator
 			Cmd_Spec_f(ent);
 		}
+		//killapin
+		else if ((curtime - client->pers.idle) > (idle_boss->value * 1000))
+		{
+			gi.bprintf (PRINT_HIGH, "%s has been idle for over %d seconds\n", client->pers.netname, (int)idle_client->value);
+			// make them a spectator
+			Cmd_Spec_f(ent);
+		}
+		//end killapin
 		else
 			client->resp.time++;
 	}

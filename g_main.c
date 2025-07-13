@@ -63,6 +63,7 @@ cvar_t	*flood_waitdelay;
 cvar_t  *kick_flamehack;
 cvar_t  *anti_spawncamp;
 cvar_t  *idle_client;
+cvar_t  *idle_boss; //killapin
 
 // Ridah, new cvar's
 cvar_t	*developer;
@@ -777,6 +778,15 @@ void G_RunFrame (void)
 
 	if (idle_client->value < 30)
 		gi.cvar_set("idle_client", "30");
+
+//killapin
+	//min
+	if (idle_boss->value < 20 )
+		gi.cvar_set("idle_boss", "20");
+	//max
+	if (idle_boss->value > idle_client->value)
+		gi.cvar_set("idle_boss", va("%i", (int)idle_client->value));
+//end killapin
 
 	if (!(level.framenum % 10))
 		UpdateTime();
